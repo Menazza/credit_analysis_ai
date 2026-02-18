@@ -5,6 +5,7 @@ from app.services.llm.tasks import (
     llm_canonical_mapper,
     llm_note_classifier,
     llm_risk_snippets,
+    llm_statement_table_parser,
 )
 
 __all__ = [
@@ -14,4 +15,5 @@ __all__ = [
     "llm_canonical_mapper",
     "llm_note_classifier",
     "llm_risk_snippets",
+    "llm_statement_table_parser",
 ]

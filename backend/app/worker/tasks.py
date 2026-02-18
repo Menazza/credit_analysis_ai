@@ -31,6 +31,77 @@ def get_sync_session() -> Session:
     return SessionLocal()
 
 
+def _split_statement_page_into_regions(
+    page: dict,
+    per_region_limit: int = 3000,
+) -> list[dict]:
+    """
+    Split a single statement page into multiple LLM regions, each capped at per_region_limit characters.
+
+    Special handling:
+    - If the page contains the SFP sentinel "total equity and liabilities", we try to end the first
+      region at the end of that line so the full SFP face is grouped together.
+    - Remaining text on the page (e.g. another statement) is chunked sequentially into new regions.
+    """
+    text = page.get("text", "") or ""
+    if not text.strip():
+        return []
+
+    regions: list[dict] = []
+    page_no = page.get("page")
+    base_region_id = page.get("region_id", f"page{page_no}")
+
+    lower = text.lower()
+    marker = "total equity and liabilities"
+    split_points: list[int] = []
+
+    if marker in lower:
+        idx = lower.find(marker)
+        # Include the full line containing the marker
+        end_of_line = text.find("\n", idx)
+        if end_of_line == -1:
+            end_of_line = len(text)
+        # Never exceed the per-region character limit
+        split_points.append(min(end_of_line, idx + len(marker), per_region_limit))
+
+    start = 0
+    part = 1
+
+    # First, emit any special split segments (e.g. SFP up to "total equity and liabilities")
+    for sp in split_points:
+        if sp <= start:
+            continue
+        chunk = text[start:sp]
+        if chunk.strip():
+            regions.append(
+                {
+                    "region_id": f"{base_region_id}_p{part}",
+                    "page": page_no,
+                    "text": chunk[:per_region_limit],
+                }
+            )
+            part += 1
+        start = sp
+
+    # Then, chunk the remaining text sequentially into per_region_limit-sized regions
+    n = len(text)
+    while start < n:
+        end = min(start + per_region_limit, n)
+        chunk = text[start:end]
+        if chunk.strip():
+            regions.append(
+                {
+                    "region_id": f"{base_region_id}_p{part}",
+                    "page": page_no,
+                    "text": chunk,
+                }
+            )
+            part += 1
+        start = end
+
+    return regions
+
+
 def _extract_regions_from_page(page: "fitz.Page") -> list[dict]:
     """Build regions_json (bbox, label, confidence) from PyMuPDF page dict."""
     regions = []
@@ -105,22 +176,16 @@ def run_ingest_pipeline(self, document_version_id: str):
 def _get_pages_text(doc: Document) -> list[dict]:
     """Download PDF and return list of {region_id, page, text} per page (deterministic input for LLM).
 
-    Text is aggressively truncated per page to keep LLM requests within TPM/context limits.
+    Returns full page text; chunking to 3k chars per region is done by _split_statement_page_into_regions
+    so long statements (e.g. full SCI) are not truncated.
     """
     pdf_bytes = download_file_from_url(doc.storage_url)
     pdf_doc = fitz.open(stream=pdf_bytes, filetype="pdf")
     out = []
-    # Allow more text per page so long tables (e.g. SFP current liabilities)
-    # are not truncated mid-page. 3k chars per page keeps statements intact
-    # while reducing prompt size per request.
-    PER_PAGE_LIMIT = 3000
-
     for i in range(len(pdf_doc)):
         page_no = i + 1
         text = pdf_doc[i].get_text() or ""
-        # Limit per-page text sent to LLM (helps avoid very large prompts),
-        # but use a higher cap so full statement pages are preserved.
-        out.append({"region_id": f"page{page_no}", "page": page_no, "text": text[:PER_PAGE_LIMIT]})
+        out.append({"region_id": f"page{page_no}", "page": page_no, "text": text})
     pdf_doc.close()
     return out
 
@@ -174,19 +239,22 @@ def _extract_structured_lines_from_statement_page(
     text: str,
     period_labels: list[str],
     start_line_no: int = 1,
+    statement_type: str = "SFP",
 ) -> list[dict]:
     """Very simple heuristic parser for tabular statement pages.
 
-    Assumptions (matched to typical SFP / SoCE layouts):
+    Assumptions (matched to typical SFP / SoCE / SCI layouts):
     - Each line item label (e.g. 'Property, plant and equipment') appears on its own line.
     - Optional note number appears on a separate short numeric line immediately after the label.
     - One numeric line per period follows (e.g. '22 536', '19 672').
+    - statement_type: SFP, SCI, SOCE, IS - controls header guards and stop conditions.
     """
     lines: list[dict] = []
     current_label: str | None = None
     current_note: str | None = None
     current_values: list[float | None] = []
     line_no = start_line_no
+    is_sfp = statement_type.upper() == "SFP"
 
     def flush_current() -> None:
         nonlocal current_label, current_note, current_values, line_no, lines
@@ -214,12 +282,10 @@ def _extract_structured_lines_from_statement_page(
 
         lower = s.lower()
 
-        # Hard stop for clearly non-SFP narrative that can appear on the same page
-        # (e.g. basis-of-preparation text, profit/52-weeks commentary). We *do not*
-        # stop at "total equity and liabilities" so that the final SFP total row is
-        # still captured.
-        if "52 weeks" in lower or "profit for the year" in lower:
-            # Below the face of the SFP: ignore remaining lines.
+        # Hard stop for SFP only: non-SFP narrative that can appear on the same page
+        # (e.g. basis-of-preparation, profit/52-weeks). For SCI/SOCE, "52 weeks" and
+        # "profit for the year" are valid line items.
+        if is_sfp and ("52 weeks" in lower or "profit for the year" in lower):
             if current_label:
                 flush_current()
             break
@@ -227,7 +293,11 @@ def _extract_structured_lines_from_statement_page(
         # Header guard: skip obvious headings that are not line items
         if "consolidated statement" in lower or "statement of financial position" in lower:
             continue
-        if lower in {"assets", "equity", "liabilities"}:
+        if "statement of comprehensive income" in lower or "statement of profit" in lower:
+            continue
+        if "statement of cash flows" in lower or "cash flow statement" in lower:
+            continue
+        if is_sfp and lower in {"assets", "equity", "liabilities"}:
             # treat as section header, flush any pending row
             if current_label:
                 flush_current()
@@ -375,6 +445,7 @@ def run_extraction(document_version_id: str):
             llm_canonical_mapper,
             llm_note_classifier,
             llm_risk_snippets,
+            llm_statement_table_parser,
         )
 
         # Import section locator and note pipeline
@@ -405,23 +476,36 @@ def run_extraction(document_version_id: str):
                 for item in obj:
                     _inject_evidence_dv_id(item, dv)
 
-        # Build locator pages and detect sections + note packets
-        locator_pages = [LocatorPage(page=p["page"], text=p.get("text", "") or "") for p in pages]
+        # Build locator pages (one per physical page) and detect sections + note packets
+        locator_pages_map: dict[int, str] = {}
+        for p in pages:
+            pg = p["page"]
+            txt = p.get("text", "") or ""
+            # If multiple entries exist for the same page, concatenate their text for locator purposes
+            if pg in locator_pages_map:
+                locator_pages_map[pg] += "\n" + txt
+            else:
+                locator_pages_map[pg] = txt
+        locator_pages = [LocatorPage(page=pg, text=txt) for pg, txt in sorted(locator_pages_map.items())]
         scale_info = detect_scale_and_currency(locator_pages)
         sections, note_packets = detect_sections_and_note_packets(locator_pages)
 
         # Find where statements end – truncate document so we never look at notes (re-enable notes later)
         statement_pages_indices = {
-            p.page for sec in ("sofp", "soci", "cashflow") for p in sections.get(sec, [])
+            p.page for sec in ("sofp", "soci", "soce", "cashflow") for p in sections.get(sec, [])
         }
         last_statement_page = max(statement_pages_indices) if statement_pages_indices else None
         if last_statement_page is not None:
             pages = [p for p in pages if p["page"] <= last_statement_page]
 
-        statement_pages_only = [p for p in pages if p["page"] in statement_pages_indices]
+        # Build statement regions (potentially multiple regions per page, each <= 3k chars)
+        statement_regions: list[dict] = []
+        for p in pages:
+            if p["page"] in statement_pages_indices:
+                statement_regions.extend(_split_statement_page_into_regions(p))
 
-        # A) Region classification (only on statement pages – not notes)
-        region_result = llm_region_classifier(statement_pages_only, dv_id)
+        # A) Region classification (only on statement regions – not notes)
+        region_result = llm_region_classifier(statement_regions, dv_id)
         if region_result:
             payload = region_result.model_dump()
             _inject_evidence_dv_id(payload, dv_id)
@@ -467,26 +551,90 @@ def run_extraction(document_version_id: str):
         region_type_by_id: dict[str, str] = {}
         first_notes_page: int | None = None  # stop scanning once LLM returns NOTES
         if region_result:
-            region_id_to_page = {p["region_id"]: p["page"] for p in statement_pages_only}
+            region_id_to_page = {p["region_id"]: p["page"] for p in statement_regions}
             for r in region_result.regions:
                 region_type_by_id[r.region_id] = r.statement_type
+            # Only treat NOTES as "notes section" when it appears AFTER the primary statements.
+            # Accounting policies often mention "statement of comprehensive income" and get
+            # mis-scored as soci; LLM correctly classifies them as NOTES. We must not exclude
+            # the real SFP/SCI (e.g. pages 18-19) when NOTES appears earlier (e.g. page 15).
+            _st = frozenset(("SFP", "SCI", "IS", "CF", "SOCE"))
+            stmt_pages = [
+                region_id_to_page[r.region_id]
+                for r in region_result.regions
+                if r.statement_type in _st and r.region_id in region_id_to_page
+            ]
+            max_statement_page = max(stmt_pages, default=0)
+            for r in region_result.regions:
                 if r.statement_type == "NOTES" and r.region_id in region_id_to_page:
                     pg = region_id_to_page[r.region_id]
-                    if first_notes_page is None or pg < first_notes_page:
+                    if pg > max_statement_page and (first_notes_page is None or pg < first_notes_page):
                         first_notes_page = pg
 
-        # Only include lines from actual statement types (exclude OTHER, NOTES)
+        # Universal statement flow: same path for all types (SFP, SCI, IS, CF, SOCE).
+        # 1) Take raw region text from PDF (already located by region classifier).
+        # 2) LLM parses table: headers (period_labels) + rows (raw_label, values per column). Fallback: heuristic parser.
+        # 3) Use parsed lines for canonical mapping and for Statement + StatementLine persistence.
         _STATEMENT_TYPES = frozenset(("SFP", "SCI", "IS", "CF", "SOCE"))
-        statement_lines = []
-        for p in pages:
-            if p["page"] not in statement_pages_indices:
+        parsed_by_type: dict[str, list[dict]] = {}  # statement_type -> list of {period_labels, lines with raw_label/values_json/note_ref/section_path, page}
+        for region in statement_regions:
+            if region["page"] not in statement_pages_indices:
                 continue
-            if first_notes_page is not None and p["page"] >= first_notes_page:
+            if first_notes_page is not None and region["page"] >= first_notes_page:
                 continue
-            stype = region_type_by_id.get(p["region_id"], "OTHER")
+            stype = region_type_by_id.get(region["region_id"], "OTHER")
             if stype not in _STATEMENT_TYPES:
                 continue
-            statement_lines.extend(_lines_from_region_text(p["text"], stype, []))
+            text = (region.get("text") or "").strip()
+            if not text:
+                continue
+            region_id = region.get("region_id", "")
+            page = region.get("page")
+            # Try universal LLM table parser first
+            parse_out = llm_statement_table_parser(region_id, text, stype, dv_id)
+            if parse_out is not None and (parse_out.period_labels or parse_out.lines):
+                period_labels = parse_out.period_labels or ["current", "prior"]
+                rows = [
+                    {
+                        "raw_label": line.raw_label,
+                        "values_json": line.values_json,
+                        "note_ref": line.note_ref,
+                        "section_path": line.section_path,
+                    }
+                    for line in parse_out.lines
+                ]
+            else:
+                # Fallback: heuristic parser (same for all statement types)
+                period_labels = _detect_period_labels_from_text(text) or ["current", "prior"]
+                structured = _extract_structured_lines_from_statement_page(
+                    text, period_labels, start_line_no=1, statement_type=stype
+                )
+                rows = [
+                    {
+                        "raw_label": row["raw_label"],
+                        "values_json": row["values_json"],
+                        "note_ref": row.get("note"),
+                        "section_path": None,
+                    }
+                    for row in structured
+                ]
+            if not rows:
+                continue
+            key = "SoCE" if stype == "SOCE" else stype
+            if key not in parsed_by_type:
+                parsed_by_type[key] = []
+            parsed_by_type[key].append({"period_labels": period_labels, "rows": rows, "page": page})
+
+        # Build statement_lines for canonical mapper from parsed lines only (no raw split)
+        statement_lines = []
+        for _stype, chunks in parsed_by_type.items():
+            for chunk in chunks:
+                for row in chunk["rows"]:
+                    statement_lines.append({
+                        "statement_type": _stype,
+                        "section_path": row.get("section_path") or [],
+                        "raw_label": row["raw_label"],
+                    })
         if statement_lines:
             map_result = llm_canonical_mapper(statement_lines, dv_id)
             if map_result:
@@ -500,47 +648,37 @@ def run_extraction(document_version_id: str):
                 ))
                 tasks_done += 1
 
-                # --- Build Statement + StatementLine rows with numeric values for key statements (SFP first) ---
-                # SFP: use combined text from all SFP pages to detect period labels (years)
-                sfp_pages = [
-                    p for p in pages
-                    if p["page"] in statement_pages_indices
-                    and region_type_by_id.get(p["region_id"], "OTHER") == "SFP"
-                ]
-                if sfp_pages:
-                    combined_sfp_text = "\n".join(p.get("text", "") or "" for p in sfp_pages)
-                    period_labels = _detect_period_labels_from_text(combined_sfp_text)
+                # Persist Statement + StatementLine from same parsed data (one path for all types)
+                for stype_key, chunks in parsed_by_type.items():
+                    if not chunks:
+                        continue
+                    period_labels = chunks[0]["period_labels"]
                     if not period_labels:
-                        # Fallback: just create current / prior columns
                         period_labels = ["current", "prior"]
-                    stmt_sfp = Statement(
+                    stmt = Statement(
                         document_version_id=version.id,
-                        statement_type="SFP",
+                        statement_type=stype_key,
                         entity_scope="GROUP",
                         periods_json=[{"label": lbl} for lbl in period_labels],
                     )
-                    db.add(stmt_sfp)
+                    db.add(stmt)
                     db.flush()
-
-                    next_line_no = 1
-                    for p in sfp_pages:
-                        structured = _extract_structured_lines_from_statement_page(
-                            p.get("text", "") or "",
-                            period_labels,
-                            start_line_no=next_line_no,
-                        )
-                        for row in structured:
+                    line_no = 1
+                    for chunk in chunks:
+                        page = chunk.get("page")
+                        ev = {"page": page} if page is not None else {}
+                        for row in chunk["rows"]:
                             sl = StatementLine(
-                                statement_id=stmt_sfp.id,
-                                line_no=row["line_no"],
+                                statement_id=stmt.id,
+                                line_no=line_no,
                                 raw_label=row["raw_label"],
-                                section_path=None,
-                                note_refs_json=[row["note"]] if row.get("note") else [],
+                                section_path=row.get("section_path"),
+                                note_refs_json=[row["note_ref"]] if row.get("note_ref") else [],
                                 values_json=row["values_json"],
-                                evidence_json={"page": p.get("page")},
+                                evidence_json=ev,
                             )
                             db.add(sl)
-                            next_line_no = row["line_no"] + 1
+                            line_no += 1
 
         # D) Notes: per-packet LLM classification + strict extractors + NotesIndex / NoteExtraction
         # DISABLED: Focus on statements first; re-enable when statements are stable.

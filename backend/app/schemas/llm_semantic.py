@@ -121,6 +121,30 @@ class RiskSnippetOutput(BaseModel):
     warnings: list[str] = Field(default_factory=list)
 
 
+# --- F) Universal statement table parsing (headers + rows) ---
+
+class StatementTableLine(BaseModel):
+    """One row from a parsed statement table: label and values per column."""
+    raw_label: str = Field(description="Line item label as it appears (e.g. 'Trade and other receivables')")
+    values_json: dict[str, float | None] = Field(
+        default_factory=dict,
+        description="Map from period/column label to numeric value or None if blank/dash (e.g. {\"2025\": 1234.5, \"2024\": null})",
+    )
+    note_ref: str | None = Field(default=None, description="Note number if present (e.g. '16')")
+    section_path: list[str] | None = Field(default=None, description="Section hierarchy if applicable (e.g. ['Assets', 'Current assets'])")
+
+
+class StatementTableParseOutput(BaseModel):
+    """Output when parsing a statement table: column headers and data rows. Universal for SFP, SCI, CF, SOCE."""
+    statement_type: StatementType | None = Field(default=None, description="Detected or hinted statement type")
+    period_labels: list[str] = Field(
+        default_factory=list,
+        description="Column headers in order (e.g. ['2025', '2024'] or ['2025 Total equity', '2025 NCI', '2024 Total equity'])",
+    )
+    lines: list[StatementTableLine] = Field(default_factory=list, description="Data rows: label + values per column")
+    warnings: list[str] = Field(default_factory=list)
+
+
 # Schema versions for cache keys (bump when schema or prompt changes)
 SCHEMA_VERSION = "1"
 PROMPT_VERSION = "1"

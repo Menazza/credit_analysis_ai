@@ -76,3 +76,26 @@ Output schema: {"risk_snippets": [{"risk_type": "...", "severity": "...", "summa
 
 def build_risk_snippet_prompt(text: str) -> str:
     return "Identify risk-related snippets in this text. Return JSON only.\n\n---\n" + text[:20000]
+
+
+# --- Task F: Universal statement table parsing ---
+
+STATEMENT_TABLE_PARSER_SYSTEM = GLOBAL_INSTRUCTION + """
+
+Your task: parse a financial statement TABLE from the given raw text (extracted from a PDF).
+- Identify the COLUMN HEADERS (periods/years or column names, e.g. "2025", "2024", or "Total equity", "NCI" for Statement of Changes in Equity).
+- For each DATA ROW: extract the line item label (e.g. "Property, plant and equipment") and the numeric value(s) for each column. Match values to columns by position or header.
+- Include ONLY actual statement line items that have at least one numeric amount. EXCLUDE: page titles, section headings without amounts, narrative paragraphs, footnotes, "see note X" only lines, and any prose.
+- If a row has a note number (e.g. "16" next to the label), set note_ref to that number.
+- For Statement of Changes in Equity (multi-column layout), period_labels may be composite (e.g. "2025 Total equity", "2025 NCI", "2024 Total equity") and values_json must have one entry per such column.
+- Output schema: {"statement_type": "SFP"|"SCI"|"IS"|"CF"|"SOCE"|null, "period_labels": ["2025", "2024"], "lines": [{"raw_label": "...", "values_json": {"2025": 123, "2024": 456}, "note_ref": "16"|null, "section_path": null|["Assets", "Current assets"]}], "warnings": []}
+Return valid JSON only. Do not infer or correct numbers; use exactly what appears in the text."""
+
+
+def build_statement_table_parser_prompt(region_id: str, text: str, statement_type_hint: str | None) -> str:
+    hint = f" (hint: this region was classified as {statement_type_hint})" if statement_type_hint else ""
+    return (
+        f"Parse the financial statement table from this region (region_id={region_id}){hint}. "
+        "Return JSON with period_labels and lines (raw_label + values_json per column). Return JSON only.\n\n---\n"
+        + text[:12000]
+    )

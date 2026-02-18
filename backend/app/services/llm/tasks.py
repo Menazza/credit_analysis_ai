@@ -17,6 +17,7 @@ from app.schemas.llm_semantic import (
     CanonicalMappingOutput,
     NoteClassificationOutput,
     RiskSnippetOutput,
+    StatementTableParseOutput,
 )
 from app.services.llm.cache import get_cached, set_cached
 from app.services.llm.prompts import (
@@ -30,6 +31,8 @@ from app.services.llm.prompts import (
     build_note_classification_prompt,
     RISK_SNIPPET_SYSTEM,
     build_risk_snippet_prompt,
+    STATEMENT_TABLE_PARSER_SYSTEM,
+    build_statement_table_parser_prompt,
 )
 
 TASK_REGION_CLASSIFIER = "region_classifier"
@@ -37,6 +40,7 @@ TASK_SCALE_EXTRACTOR = "scale_extractor"
 TASK_CANONICAL_MAPPER = "canonical_mapper"
 TASK_NOTE_CLASSIFIER = "note_classifier"
 TASK_RISK_SNIPPETS = "risk_snippets"
+TASK_STATEMENT_TABLE_PARSER = "statement_table_parser"
 
 CONFIDENCE_THRESHOLD = 0.80  # Below this → canonical_key="UNMAPPED"
 
@@ -224,4 +228,38 @@ def llm_risk_snippets(text: str, document_version_id: str) -> RiskSnippetOutput 
     data = _parse_json_response(content)
     out = RiskSnippetOutput.model_validate(data)
     set_cached(TASK_RISK_SNIPPETS, payload, out.model_dump(), settings.llm_model)
+    return out
+
+
+def llm_statement_table_parser(
+    region_id: str,
+    text: str,
+    statement_type_hint: str | None,
+    document_version_id: str,
+) -> StatementTableParseOutput | None:
+    """
+    Universal table parser: given raw statement text, return column headers (period_labels)
+    and data rows (raw_label + values_json). Same flow for SFP, SCI, CF, SOCE.
+    """
+    if not (text or "").strip():
+        return StatementTableParseOutput(period_labels=[], lines=[], warnings=["empty text"])
+    payload = {
+        "document_version_id": document_version_id,
+        "region_id": region_id,
+        "text": text[:12000],
+        "statement_type_hint": statement_type_hint,
+    }
+    cached = get_cached(TASK_STATEMENT_TABLE_PARSER, payload)
+    if cached is not None:
+        return StatementTableParseOutput.model_validate(cached)
+    settings = get_settings()
+    if not settings.openai_api_key:
+        return None
+    content = _call_llm(
+        STATEMENT_TABLE_PARSER_SYSTEM,
+        build_statement_table_parser_prompt(region_id, text, statement_type_hint),
+    )
+    data = _parse_json_response(content)
+    out = StatementTableParseOutput.model_validate(data)
+    set_cached(TASK_STATEMENT_TABLE_PARSER, payload, out.model_dump(), settings.llm_model)
     return out

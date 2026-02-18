@@ -9,6 +9,7 @@ from typing import Any
 
 from openpyxl import Workbook
 from openpyxl.styles import Alignment, Font, PatternFill, Border, Side
+from openpyxl.utils import get_column_letter
 
 
 def _period_columns(periods_json: list) -> list[str]:
@@ -21,7 +22,35 @@ def _period_columns(periods_json: list) -> list[str]:
 def _row_values(line: Any, period_labels: list[str]) -> list:
     """Values for a statement line in period order; values_json is {period_key: value}."""
     values_json = getattr(line, "values_json", None) or {}
-    return [values_json.get(lbl, "") for lbl in period_labels]
+    return [(v if v is not None else "") for lbl in period_labels for v in [values_json.get(lbl)]]
+
+
+def _soce_column_labels() -> dict[str, str]:
+    """Display labels for SOCE column keys."""
+    return {
+        "total_equity": "Total equity",
+        "non_controlling_interest": "Non-controlling interest",
+        "attributable_total": "Attributable total",
+        "stated_capital": "Stated capital",
+        "treasury_shares": "Treasury shares",
+        "other_reserves": "Other reserves",
+        "retained_earnings": "Retained earnings",
+    }
+
+
+def _row_values_soce(line: Any, periods_json: list) -> list:
+    """Values for SoCE line: values_json is {period: {column: value}}."""
+    values_json = getattr(line, "values_json", None) or {}
+    out: list = []
+    col_labels = _soce_column_labels()
+    for p in periods_json:
+        period_label = p.get("label", "")
+        columns = p.get("columns") or []
+        period_vals = values_json.get(period_label) if isinstance(values_json.get(period_label), dict) else {}
+        for col in columns:
+            v = period_vals.get(col) if period_vals else None
+            out.append(v if v is not None and v != "" else "")
+    return out
 
 
 def build_statements_xlsx(
@@ -127,14 +156,33 @@ def build_statements_xlsx(
     statement_titles = {
         "SFP": "Consolidated statement of financial position",
         "SCI": "Consolidated statement of profit or loss and other comprehensive income",
+        "SOCE": "Consolidated statement of comprehensive income",
         "CF": "Consolidated statement of cash flows",
         "SoCE": "Statement of changes in equity",
+        "IS": "Income statement",
     }
 
     # --- One sheet per statement ---
     for stmt in statements:
         lines = list(getattr(stmt, "lines", []))
-        period_labels = _period_columns(getattr(stmt, "periods_json", None) or [])
+        periods_json = getattr(stmt, "periods_json", None) or []
+        period_labels = _period_columns(periods_json)
+
+        # SoCE: multi-column layout (Total equity, NCI, Stated capital, etc.) per period
+        is_soce = stmt.statement_type == "SoCE" and periods_json and isinstance(periods_json[0].get("columns"), list)
+        if is_soce:
+            # Build headers: Line item | Notes | [period1: col1, col2, ...] | [period2: col1, col2, ...] | Source pages
+            col_labels = _soce_column_labels()
+            value_headers: list[str] = []
+            for p in periods_json:
+                period_label = p.get("label", "")
+                columns = p.get("columns") or []
+                for col in columns:
+                    label = col_labels.get(col, col.replace("_", " ").title())
+                    value_headers.append(f"{label} ({period_label})" if period_label else label)
+            headers = ["Line item", "Notes"] + value_headers + ["Source pages"]
+        else:
+            headers = ["Line item", "Notes"] + period_labels + ["Source pages"]
 
         # Clean, predictable sheet names so SFP / SoCE are on clear separate tabs
         base_name = stmt.statement_type
@@ -149,7 +197,7 @@ def build_statements_xlsx(
         if getattr(stmt, "entity_scope", None):
             title = f"{title} – {stmt.entity_scope.title()}"
         ws.append([title])
-        max_col = 3 + len(period_labels)
+        max_col = len(headers)
         ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=max_col)
         title_cell = ws.cell(row=1, column=1)
         title_cell.font = title_font
@@ -158,9 +206,8 @@ def build_statements_xlsx(
         # Blank spacer row
         ws.append([])
 
-        # Header row: line item + Notes + one column per period + source pages
+        # Header row
         header_row_idx = ws.max_row + 1
-        headers = ["Line item", "Notes"] + period_labels + ["Source pages"]
         ws.append(headers)
         for col_idx in range(1, len(headers) + 1):
             cell = ws.cell(row=header_row_idx, column=col_idx)
@@ -168,13 +215,13 @@ def build_statements_xlsx(
             cell.alignment = center_header if col_idx >= 3 else left_text
             cell.fill = header_fill
 
-        # Set some sensible column widths
+        # Set column widths
         ws.column_dimensions["A"].width = 55  # Line item
         ws.column_dimensions["B"].width = 10  # Notes
-        for i in range(len(period_labels)):
-            col_letter = chr(ord("C") + i)
-            ws.column_dimensions[col_letter].width = 16
-        ws.column_dimensions[chr(ord("C") + len(period_labels))].width = 18  # Source pages
+        num_value_cols = len(headers) - 3  # minus Line item, Notes, Source pages
+        for i in range(num_value_cols):
+            ws.column_dimensions[get_column_letter(3 + i)].width = 14
+        ws.column_dimensions[get_column_letter(3 + num_value_cols)].width = 18  # Source pages
 
         # Data rows with section grouping similar to PDF layout
         seen_top_sections: set[str] = set()
@@ -217,15 +264,20 @@ def build_statements_xlsx(
             else:
                 notes_str = str(note_refs) if note_refs else ""
 
-            values = _row_values(line, period_labels)
+            values = (
+                _row_values_soce(line, periods_json)
+                if is_soce
+                else _row_values(line, period_labels)
+            )
 
             row_idx = ws.max_row + 1
+            num_val_cols = len(values)
             ws.append(
                 [raw_label, notes_str] + values + [pages_str]
             )
 
             # Styling for the just-added data row
-            is_total = raw_label.strip().lower().startswith("total ")
+            is_total = raw_label.strip().lower().startswith("total ") or "balance at" in raw_label.strip().lower()
             depth = len(parts)
 
             # Line item cell
@@ -238,17 +290,16 @@ def build_statements_xlsx(
             ws.cell(row=row_idx, column=2).alignment = center_header
 
             # Value cells
-            for i, _ in enumerate(period_labels):
+            for i in range(num_val_cols):
                 col_idx = 3 + i
                 cell = ws.cell(row=row_idx, column=col_idx)
                 cell.alignment = right_number
-                # Use an accounting-style number format with thousands separator
                 cell.number_format = '#,##0;[Red]-#,##0'
                 if is_total:
                     cell.font = total_font
 
             # Source pages cell
-            ws.cell(row=row_idx, column=3 + len(period_labels)).alignment = center_header
+            ws.cell(row=row_idx, column=3 + num_val_cols).alignment = center_header
 
             # Highlight totals with a top border and light fill
             if is_total:
@@ -306,26 +357,54 @@ def build_statements_csv(
             ])
         writer.writerow([])
 
-    # Collect all period labels across statements (use first statement's periods or union)
-    all_periods: list[str] = []
-    for stmt in statements:
-        p = _period_columns(getattr(stmt, "periods_json", None) or [])
-        for lbl in p:
-            if lbl not in all_periods:
-                all_periods.append(lbl)
+    # Collect value column headers: use SoCE multi-column if any stmt is SoCE, else period labels
+    has_soce = any(
+        stmt.statement_type == "SoCE"
+        and getattr(stmt, "periods_json", None)
+        and isinstance((getattr(stmt, "periods_json") or [{}])[0].get("columns"), list)
+        for stmt in statements
+    )
+    all_value_headers: list[str] = []
+    if has_soce:
+        for stmt in statements:
+            if stmt.statement_type != "SoCE":
+                continue
+            periods_json = getattr(stmt, "periods_json", None) or []
+            if not periods_json or not isinstance(periods_json[0].get("columns"), list):
+                continue
+            col_labels = _soce_column_labels()
+            for p in periods_json:
+                period_label = p.get("label", "")
+                for col in p.get("columns") or []:
+                    label = col_labels.get(col, col.replace("_", " "))
+                    all_value_headers.append(f"{label} ({period_label})" if period_label else label)
+            break
+    if not all_value_headers:
+        for stmt in statements:
+            p = _period_columns(getattr(stmt, "periods_json", None) or [])
+            for lbl in p:
+                if lbl not in all_value_headers:
+                    all_value_headers.append(lbl)
+    if not all_value_headers:
+        all_value_headers = ["period_1", "period_2"]
 
-    headers = ["statement_type", "entity_scope", "line_no", "raw_label", "section_path"] + all_periods + ["source_pages"]
+    headers = ["statement_type", "entity_scope", "line_no", "raw_label", "section_path"] + all_value_headers + ["source_pages"]
     writer.writerow(headers)
 
     for stmt in statements:
-        period_labels = _period_columns(getattr(stmt, "periods_json", None) or [])
+        periods_json = getattr(stmt, "periods_json", None) or []
+        is_soce = stmt.statement_type == "SoCE" and periods_json and isinstance(periods_json[0].get("columns"), list)
+        period_labels = _period_columns(periods_json)
         for line in getattr(stmt, "lines", []):
             evidence = getattr(line, "evidence_json", None) or {}
             pages = evidence.get("pages", [])
             pages_str = ",".join(str(p) for p in pages) if pages else ""
-            values = _row_values(line, period_labels)
-            # Pad values to all_periods length
-            while len(values) < len(all_periods):
+            values = (
+                _row_values_soce(line, periods_json)
+                if is_soce
+                else _row_values(line, period_labels)
+            )
+            while len(values) < len(all_value_headers):
                 values.append("")
             row = [
                 stmt.statement_type,
@@ -333,7 +412,7 @@ def build_statements_csv(
                 getattr(line, "line_no", ""),
                 (getattr(line, "raw_label", "") or "")[:500],
                 (getattr(line, "section_path", "") or "")[:200],
-            ] + values + [pages_str]
+            ] + values[: len(all_value_headers)] + [pages_str]
             writer.writerow(row)
 
     buf.seek(0)
