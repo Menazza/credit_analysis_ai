@@ -21,7 +21,7 @@ class EvidenceSpan(BaseModel):
 
 # --- A) Statement / Region classification ---
 
-StatementType = Literal["SFP", "SCI", "IS", "CF", "SOCE", "NOTES", "OTHER"]
+StatementType = Literal["SFP", "SCI", "IS", "CF", "SOCE", "SoCE", "NOTES", "OTHER"]
 EntityScope = Literal["GROUP", "COMPANY", "UNKNOWN"]
 
 
