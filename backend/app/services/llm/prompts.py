@@ -83,12 +83,14 @@ def build_risk_snippet_prompt(text: str) -> str:
 STATEMENT_TABLE_PARSER_SYSTEM = GLOBAL_INSTRUCTION + """
 
 Your task: parse a financial statement TABLE from the given raw text (extracted from a PDF).
-- Identify the COLUMN HEADERS (periods/years or column names, e.g. "2025", "2024", or "Total equity", "NCI" for Statement of Changes in Equity).
-- For each DATA ROW: extract the line item label (e.g. "Property, plant and equipment") and the numeric value(s) for each column. Match values to columns by position or header.
-- Include ONLY actual statement line items that have at least one numeric amount. EXCLUDE: page titles, section headings without amounts, narrative paragraphs, footnotes, "see note X" only lines, and any prose.
-- If a row has a note number (e.g. "16" next to the label), set note_ref to that number.
-- For Statement of Changes in Equity (multi-column layout), period_labels may be composite (e.g. "2025 Total equity", "2025 NCI", "2024 Total equity") and values_json must have one entry per such column.
-- Output schema: {"statement_type": "SFP"|"SCI"|"IS"|"CF"|"SOCE"|null, "period_labels": ["2025", "2024"], "lines": [{"raw_label": "...", "values_json": {"2025": 123, "2024": 456}, "note_ref": "16"|null, "section_path": null|["Assets", "Current assets"]}], "warnings": []}
+- Identify the COLUMN HEADERS (periods/years or column names, e.g. "2025", "2024", or "52 weeks 2025 Rm", "Restated* 52 weeks 2024 Rm", or "Total equity", "NCI" for Statement of Changes in Equity).
+- Extract each DATA ROW in the EXACT order it appears in the document, top to bottom. Do NOT reorder, group, or sort. Preserve the document sequence.
+- For hierarchical statements (e.g. Statement of Comprehensive Income): use section_path to capture parent sections. E.g. a line under "Other comprehensive loss, net of income tax" → section_path: ["Other comprehensive loss, net of income tax"]. A line under "Items that may subsequently be reclassified to profit or loss" → section_path: ["Other comprehensive loss, net of income tax", "Items that may subsequently be reclassified to profit or loss"].
+- Include section headers that have amounts (e.g. "Gross profit", "Trading profit", "Operating profit", "Other comprehensive loss, net of income tax") as line items. Include ALL line items with at least one numeric amount.
+- Use raw_label exactly as printed (preserve spelling, punctuation). If a row has a note number in the Notes column, set note_ref to that number.
+- For Statement of Changes in Equity (multi-column layout), period_labels may be composite (e.g. "2025 Total equity", "2025 NCI") and values_json must have one entry per such column.
+- EXCLUDE: page titles only, narrative paragraphs, footnotes, "see note X" without amounts, and prose.
+- Output schema: {"statement_type": "SFP"|"SCI"|"IS"|"CF"|"SOCE"|null, "period_labels": ["2025", "2024"], "lines": [{"raw_label": "...", "values_json": {"2025": 123, "2024": 456}, "note_ref": "16"|null, "section_path": null|["Parent section", "Subsection"]}], "warnings": []}
 Return valid JSON only. Do not infer or correct numbers; use exactly what appears in the text."""
 
 
@@ -96,6 +98,7 @@ def build_statement_table_parser_prompt(region_id: str, text: str, statement_typ
     hint = f" (hint: this region was classified as {statement_type_hint})" if statement_type_hint else ""
     return (
         f"Parse the financial statement table from this region (region_id={region_id}){hint}. "
+        "Return lines in the EXACT order they appear in the text (top to bottom). Preserve hierarchy with section_path. "
         "Return JSON with period_labels and lines (raw_label + values_json per column). Return JSON only.\n\n---\n"
         + text[:12000]
     )
