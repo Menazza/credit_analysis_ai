@@ -1,0 +1,375 @@
+NOTES SUMMARY
+============================================================
+
+Note 1: Accounting policies
+  Pages: 13-24
+  Content: 116955 chars
+    1.1: Basis of preparation
+    1.1.1: Use of judgements, assumptions and estimates
+    1.1.2: Use of adjusted measures
+    1.2: Consolidation and equity accounting
+    1.2.1: Subsidiaries
+    1.2.2: Associates
+    1.2.3: Joint arrangements
+    1.3: Cell captive insurance arrangements
+    1.4: Foreign currency translation
+    1.4.1: Functional and presentation currency
+    1.4.2: Transactions and balances
+    1.4.3: Foreign operations
+    1.5: Hyperinflation
+    1.6: Hedging activities: net investment hedging
+    1.7: Property, plant and equipment
+    1.8: Investment properties
+    1.9: Intangible assets
+    1.9.1: Goodwill
+    1.9.2: Software, trademarks and customer relationships
+    1.10.1: Non-current assets classified as held for sale
+    1.11: Impairment of non-financial assets
+    1.12: Leases
+    1.12.1: Where the Group is the lessee
+    1.12.2: Where the Group is the lessor
+    1.13: Sale and leaseback transactions
+    1.14: Other financial instruments
+    1.14.1: Initial recognition and measurement
+    1.14.2: Derecognition
+    1.14.3: Offsetting
+    1.14.4: Classification and subsequent measurement
+    1.14.5: Impairment
+    1.15: Inventories
+    1.16: Stated capital
+    1.17: Employee benefit and other provisions
+    1.17.1: Long-term employee benefits
+    1.17.2: Reinstatement provision
+    1.18: Employee benefits
+    1.18.1: Pension obligations
+    1.18.2: Post-employment medical benefits
+    1.18.3: Equity-settled share-based payments
+    1.18.4: Cash-settled share-based payments
+    1.18.5: Bonus plans
+    1.19: Revenue from contracts with customers
+    1.19.1: Sale of merchandise
+    1.19.2: Lay-by sales
+    1.19.3: Gift vouchers and saving stamps
+    1.19.4: Commissions received
+    1.19.5: Franchise fees received
+    1.19.6: Marketing and media revenue
+    1.19.7: Delivery recoveries
+    1.19.8: Financing components
+    1.20: Alternative revenue
+    1.20.1: Effective interest income
+    1.20.2: Operating lease income
+    1.20.3: Dividend income
+    1.21: Borrowing costs
+    1.22: Rebates from suppliers
+    1.23: Cost of sales
+    1.24: Current and deferred income tax
+    1.25: Earnings per share
+    1.26: Dividends distributed to shareholders
+    1.27: Basis of accounting for third-party cell captive contracts
+    1.27.1: Classification of contracts
+    1.27.2: Recognition and measurement of contracts
+    1.28: Related parties
+    1.29: Operating segment information
+    1.30: Standards, interpretations and amendments that are not yet effective as at 29 June 2025
+    1.31: New standards, interpretations and amendments effective for the year ended 29 June 2025
+    1.32: Comparative figures
+
+Note 2: Operating segment information
+  Pages: 24-25
+  Content: 4736 chars
+    2.1: Analysis per reportable segment
+    2.2: Geographical analysis
+
+Note 3: Property, plant and equipment
+  Pages: 25-26
+  Content: 4561 chars
+    3.1: Reconciliation of carrying amounts
+    3.2: Property, plant and equipment subject to an operating lease where the Group is the lessor
+    3.3: Property, plant and equipment not yet in use
+
+Note 4: Assets classified as held for sale
+  Pages: 26-26
+  Content: 4268 chars
+    4.1: Reconciliation of carrying amount
+    4.2: Transfer to/(from) assets classified as held for sale
+
+Note 5: Investment properties
+  Pages: 26-27
+  Content: 2180 chars
+    5.1: Reconciliation of carrying amount
+    5.2: The statement of comprehensive income includes the following
+    5.3: Fair value of investment properties held at cost
+
+Note 6: Right-of-use assets
+  Pages: 27-27
+  Content: 1050 chars
+    6.1: Reconciliation of carrying amounts
+
+Note 7: Intangible assets
+  Pages: 27-28
+  Content: 3313 chars
+    7.1: Reconciliation of carrying amounts
+    7.2: Goodwill
+    7.3: Borrowing costs capitalised
+    7.4: Software not yet in use
+
+Note 8: Impairment of non-financial assets
+  Pages: 28-29
+  Content: 6760 chars
+    8.1: Impairments recognised/(reversed)
+    8.2: Impairment methodology
+    8.3: Key assumptions and sensitivity analyses
+
+Note 9: Equity accounted investments
+  Pages: 29-31
+  Content: 10119 chars
+    9.1: Associates
+    9.1.1: Summary financial information of Retail Logistics Fund (RF) (Pty) Ltd
+    9.1.2: Summary financial information of Resilient Africa (Pty) Ltd
+    9.2: Joint ventures
+
+Note 10: Investments at fair value through other comprehensive income
+  Pages: 31-31
+  Content: 217 chars
+
+Note 11: Investment in insurance cell captive arrangements
+  Pages: 31-31
+  Content: 1956 chars
+    11.1: Third-party cell captive contracts
+    11.2: First-party cell captive contracts
+
+Note 12: Government bonds and bills
+  Pages: 31-32
+  Content: 2227 chars
+    12.1: AOA, USD Index Linked, Angola Government Bonds 539 515
+    12.2: AOA, Angola Government Bonds 33 288
+    12.3: Angola Treasury Bills
+    12.4: Nigeria Treasury Bills — 17
+
+Note 13: Loans receivable
+  Pages: 32-32
+  Content: 2193 chars
+    13.1: Amounts receivable from franchisees
+    13.2: Amounts receivable from Kin Oasis Investments Ltd 118 147
+    13.3: Amounts receivable from supplier financing arrangements
+    13.3.1: Supplier loans receivable from working capital advances 470 105
+    13.3.2: Other loan amounts receivable from suppliers 114 75
+
+Note 14: Deferred income tax
+  Pages: 32-33
+  Content: 3006 chars
+    14.1: Deferred income tax assets
+    14.2: Deferred income tax liabilities
+    14.3: Net calculated income tax losses and net deductible temporary differences
+
+Note 15: Trade and other receivables
+  Pages: 33-34
+  Content: 4319 chars
+    15.1: Trade receivables from contracts with customers
+    15.2: Instalment sale receivables from contracts with customers 36 1 287
+    15.3: Other receivables 1 425 1 087
+    15.4: Net investment in lease receivables
+    15.4.1: Reconciliation of net investment in the lease receivables:
+    15.4.2: Maturity analysis
+
+Note 16: Inventories
+  Pages: 34-34
+  Content: 463 chars
+    16.1: Gross inventories 30 555 29 424
+    16.2: Amount of write-down to net realisable value recognised in cost of sales during the year
+    16.3: Value of inventory expensed to the consolidated statement of comprehensive income 191 259 176 549
+
+Note 17: Stated capital and treasury shares
+  Pages: 34-34
+  Content: 2289 chars
+    17.1: Stated capital 7 516 7 516
+    17.2: Treasury shares
+
+Note 18: Share-based compensation plans
+  Pages: 34-38
+  Content: 20317 chars
+    18.1: Equity-settled share-based payments
+    18.1.1: ESP performance shares
+    18.1.2: ESP co-investment shares
+    18.1.3: ESP retention shares
+    18.1.4: EDI shares
+    18.1.5: Shares awarded under the deferred short-term incentive, virtual option bonus and long-term incentive bonus plans
+    18.1.6: Share awards held by Executive Directors
+    18.2: Cash-settled share-based payments
+    18.2.1: Cash-settled share-based payments awarded to Directors
+
+Note 19: Reserves
+  Pages: 38-38
+  Content: 1567 chars
+    19.1: Other reserves
+    19.1.1: Share-based payments reserve
+    19.1.2: Foreign currency translation reserve
+    19.1.3: Fair value reserve
+
+Note 20: Lease liabilities
+  Pages: 38-39
+  Content: 4777 chars
+
+Note 21: Borrowings
+  Pages: 39-39
+  Content: 2975 chars
+    21.1: Reconciliation of movement in liabilities arising from financing activities:
+    21.2: ABSA Bank Ltd
+    21.3: FirstRand Bank Ltd
+    21.4: Standard Bank South Africa Ltd
+    21.5: Stanbic Bank Botswana Ltd
+    21.6: Investec Bank Ltd
+    21.7: Standard Bank Angola Ltd
+
+Note 22: Employee benefit and other provisions
+  Pages: 39-40
+  Content: 1937 chars
+
+Note 23: Trade and other payables
+  Pages: 40-40
+  Content: 2388 chars
+    23.1: Deferred shares
+
+Note 24: Contract liabilities
+  Pages: 40-40
+  Content: 677 chars
+
+Note 25: Liabilities directly associated with assets classified as held for sale
+  Pages: 40-41
+  Content: 966 chars
+    25.1: Reconciliation of carrying amount
+
+Note 26: Revenue
+  Pages: 41-41
+  Content: 4199 chars
+    26.1: Sale of merchandise has been disaggregated as follows:
+    26.2: Commissions received
+    26.3: Operating lease income
+    26.4: Interest revenue
+
+Note 27: Depreciation and amortisation
+  Pages: 41-42
+  Content: 922 chars
+
+Note 28: Employee benefits
+  Pages: 42-42
+  Content: 1693 chars
+    28.1: Share-based payment arrangements
+    28.2: Learnership allowances
+    28.3: Employment tax incentive (ETI)
+
+Note 29: Directors’ remuneration
+  Pages: 42-43
+  Content: 2053 chars
+
+Note 30: Other operating expenses*
+  Pages: 43-43
+  Content: 703 chars
+
+Note 31: Items of a capital nature*
+  Pages: 43-43
+  Content: 1198 chars
+
+Note 32: Operating profit
+  Pages: 43-43
+  Content: 553 chars
+    32.1: Auditors’ remuneration
+
+Note 33: Finance costs*
+  Pages: 43-43
+  Content: 442 chars
+
+Note 34: Income tax expense*
+  Pages: 43-44
+  Content: 2585 chars
+    34.1: Classification
+    34.2: Consisting of:
+    34.3: Reconciliation of the effective tax rate
+
+Note 35: Disoperations
+  Pages: 44-46
+  Content: 8472 chars
+    35.1: Financial performance and cash flow information
+    35.3: Assets and liabilities of disposal group classified as held for sale
+
+Note 36: Earnings/(loss) per share
+  Pages: 46-46
+  Content: 3779 chars
+
+Note 37: Dividends per share
+  Pages: 46-47
+  Content: 658 chars
+    37.1: Dividends per share paid
+    37.2: Dividends per share declared
+
+Note 38: Cash flow information
+  Pages: 47-48
+  Content: 6577 chars
+    38.1: Non-cash items
+    38.2: Changes in working capital
+    38.3: Dividends paid
+    38.4: Income tax paid
+    38.5: Acquisition of subsidiaries
+    38.5.1: Resilient Africa (Pty) Ltd and Resilient Africa Managers (Pty) Ltd
+    38.5.2: Pingo Delivery (Pty) Ltd
+    38.6: Cash outflow on disposal of investment in subsidiary
+
+Note 39: Contingent liabilities
+  Pages: 48-48
+  Content: 2670 chars
+    39.1: Amounts arising in the ordinary course of business relating to property transactions,
+    39.2: In 2011, AIC Ltd (the Claimant), a company registered in the Federal Republic of Nigeria issued a summons against
+
+Note 40: Commitments
+  Pages: 48-48
+  Content: 825 chars
+    40.1: Capital commitments
+    40.2: Operating lease receivables
+
+Note 41: Borrowing powers
+  Pages: 48-48
+  Content: 140 chars
+
+Note 42: Post-employment benefits
+  Pages: 48-49
+  Content: 781 chars
+
+Note 43: Risk management and financial instrument disclosure
+  Pages: 49-63
+  Content: 83486 chars
+    43.1: Capital risk management
+    43.2: Fair value of financial instruments
+    43.3: Offsetting of financial assets and liabilities
+    43.4: Financial risk management
+    43.4.1: Credit risk
+    43.4.2: Market risk
+    43.4.3: Liquidity risk
+    43.5: Insurance risk
+
+Note 44: Related party information
+  Pages: 63-64
+  Content: 4295 chars
+    44.1: Key management personnel compensation
+    44.2: Equity accounted investments
+
+Note 45: Comparative figures
+  Pages: 64-65
+  Content: 7055 chars
+    45.1: Impact on condensed consolidated statement of comprehensive income
+    45.2: Impact on condensed operating segmental information from continuing operations
+    45.2.1: Analysis per reportable segment note 2.1
+    45.2.2: Geographical analysis note 2.2
+
+Note 46: Change in accounting estimate
+  Pages: 65-65
+  Content: 1590 chars
+
+Note 47: Events after the reporting date
+  Pages: 65-65
+  Content: 1093 chars
+    47.1: Furniture business disposal
+
+Note 48: Going concern
+  Pages: 65-65
+  Content: 824 chars
+

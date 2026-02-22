@@ -49,6 +49,72 @@ class StatementPage:
     confidence: float
 
 
+def detect_scale_from_pdf(pdf_bytes: bytes) -> dict:
+    """
+    Detect the unit of measurement from the PDF (e.g., Rm, R'000, millions).
+    Searches the first few pages and statement pages for scale indicators.
+    
+    Returns: {"scale": "million"|"thousand"|"units", "scale_factor": float, 
+              "scale_label": "Rm"|"R'000"|"R", "currency": "ZAR"|"USD"|None}
+    """
+    import fitz
+    
+    doc = fitz.open(stream=pdf_bytes, filetype="pdf")
+    
+    # Search first 15 pages for scale indicators
+    search_pages = min(15, len(doc))
+    combined_text = ""
+    for i in range(search_pages):
+        combined_text += doc[i].get_text() + "\n"
+    
+    doc.close()
+    
+    text_lower = combined_text.lower()
+    
+    # Detect currency
+    currency = None
+    if "south africa" in text_lower or "zar" in text_lower or " r " in text_lower:
+        currency = "ZAR"
+    elif "us dollar" in text_lower or "usd" in text_lower:
+        currency = "USD"
+    elif "euro" in text_lower or "eur" in text_lower:
+        currency = "EUR"
+    
+    # Detect scale - check for common patterns
+    # Rm = Rand millions
+    # R'000 = Rand thousands
+    # R million / R millions
+    
+    scale = "units"
+    scale_factor = 1.0
+    scale_label = "R"
+    
+    # Check for millions (Rm is most common in SA financial statements)
+    if re.search(r'\bRm\b', combined_text):  # Case-sensitive Rm
+        scale, scale_factor, scale_label = "million", 1_000_000, "Rm"
+    elif re.search(r'\br\s*million', text_lower) or re.search(r'amounts?\s+in\s+(r\s+)?millions?', text_lower):
+        scale, scale_factor, scale_label = "million", 1_000_000, "R million"
+    elif re.search(r"r'?000\b", text_lower) or re.search(r'amounts?\s+in\s+thousands?', text_lower):
+        scale, scale_factor, scale_label = "thousand", 1_000, "R'000"
+    elif re.search(r'\br\s*billion', text_lower) or re.search(r'amounts?\s+in\s+(r\s+)?billions?', text_lower):
+        scale, scale_factor, scale_label = "billion", 1_000_000_000, "R billion"
+    
+    # Also check column headers for Rm
+    if scale == "units":
+        # Look for Rm in column headers (common in tables)
+        if re.search(r'\bRm\b.*\d{4}', combined_text) or re.search(r'\d{4}.*\bRm\b', combined_text):
+            scale, scale_factor, scale_label = "million", 1_000_000, "Rm"
+        elif "Rm" in combined_text:
+            scale, scale_factor, scale_label = "million", 1_000_000, "Rm"
+    
+    return {
+        "scale": scale,
+        "scale_factor": scale_factor,
+        "scale_label": scale_label,
+        "currency": currency,
+    }
+
+
 def classify_pages_with_llm(pdf_bytes: bytes) -> list[StatementPage]:
     """Use LLM to classify all pages by statement type."""
     from app.services.llm.tasks import llm_region_classifier
@@ -273,6 +339,12 @@ def test_all_statements(pdf_path: str, output_dir: str = None, use_llm: bool = T
     with open(pdf_path, "rb") as f:
         pdf_bytes = f.read()
     
+    # Detect scale/currency from the PDF
+    scale_info = detect_scale_from_pdf(pdf_bytes)
+    print(f"\nScale detected: {scale_info['scale']} ({scale_info['scale_label']})")
+    if scale_info['currency']:
+        print(f"Currency: {scale_info['currency']}")
+    
     # Classify all pages
     if use_llm:
         statement_pages = classify_pages_with_llm(pdf_bytes)
@@ -439,6 +511,17 @@ def test_all_statements(pdf_path: str, output_dir: str = None, use_llm: bool = T
     pdf_name = pdf_path.stem
     output_file = output_dir / f"all_statements_{pdf_name}_{timestamp}.xlsx"
     
+    # Add scale label to year columns (e.g., "2025" -> "2025 (Rm)")
+    scale_label = scale_info.get("scale_label", "")
+    for key, df in all_dfs.items():
+        new_columns = {}
+        for col in df.columns:
+            # Check if column looks like a year
+            if re.match(r'^\d{4}$', str(col)):
+                new_columns[col] = f"{col} ({scale_label})" if scale_label else col
+        if new_columns:
+            all_dfs[key] = df.rename(columns=new_columns)
+    
     # Clean all string columns to remove illegal Excel characters
     for key, df in all_dfs.items():
         for col in df.columns:
@@ -446,6 +529,31 @@ def test_all_statements(pdf_path: str, output_dir: str = None, use_llm: bool = T
                 all_dfs[key][col] = df[col].apply(clean_for_excel)
     
     with pd.ExcelWriter(output_file, engine="openpyxl") as writer:
+        # Write summary sheet first
+        summary_data = {
+            "Property": ["PDF File", "Scale", "Currency", "Extraction Date"],
+            "Value": [
+                pdf_path.name,
+                f"{scale_info['scale']} ({scale_info['scale_label']})",
+                scale_info.get('currency') or 'Not detected',
+                datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            ]
+        }
+        summary_df = pd.DataFrame(summary_data)
+        summary_df.to_excel(writer, sheet_name="Summary", index=False)
+        
+        # Format summary sheet
+        ws_summary = writer.sheets["Summary"]
+        from openpyxl.styles import Font, PatternFill
+        header_fill = PatternFill(start_color="4472C4", end_color="4472C4", fill_type="solid")
+        header_font = Font(bold=True, color="FFFFFF")
+        for col in range(1, 3):
+            cell = ws_summary.cell(row=1, column=col)
+            cell.fill = header_fill
+            cell.font = header_font
+        ws_summary.column_dimensions["A"].width = 20
+        ws_summary.column_dimensions["B"].width = 40
+        
         for sheet_name, df in all_dfs.items():
             # Truncate sheet name if needed (Excel limit: 31 chars)
             safe_name = sheet_name[:31]
