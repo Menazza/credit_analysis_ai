@@ -18,6 +18,8 @@ from app.schemas.llm_semantic import (
     NoteClassificationOutput,
     RiskSnippetOutput,
     StatementTableParseOutput,
+    SoCELayoutOutput,
+    SoCETableExtractOutput,
 )
 from app.services.llm.cache import get_cached, set_cached
 from app.services.llm.prompts import (
@@ -33,6 +35,10 @@ from app.services.llm.prompts import (
     build_risk_snippet_prompt,
     STATEMENT_TABLE_PARSER_SYSTEM,
     build_statement_table_parser_prompt,
+    SOCE_LAYOUT_VISION_SYSTEM,
+    build_soce_layout_prompt,
+    SOCE_TABLE_EXTRACT_SYSTEM,
+    build_soce_table_extract_prompt,
 )
 
 TASK_REGION_CLASSIFIER = "region_classifier"
@@ -41,6 +47,8 @@ TASK_CANONICAL_MAPPER = "canonical_mapper"
 TASK_NOTE_CLASSIFIER = "note_classifier"
 TASK_RISK_SNIPPETS = "risk_snippets"
 TASK_STATEMENT_TABLE_PARSER = "statement_table_parser"
+TASK_SOCE_LAYOUT = "soce_layout_vision"
+TASK_SOCE_TABLE_EXTRACT = "soce_table_extract"
 
 CONFIDENCE_THRESHOLD = 0.80  # Below this → canonical_key="UNMAPPED"
 
@@ -61,6 +69,30 @@ def _call_llm(system: str, user_content: str) -> str:
         messages=[
             {"role": "system", "content": system},
             {"role": "user", "content": user_content},
+        ],
+    )
+    return (resp.choices[0].message.content or "").strip()
+
+
+def _call_llm_vision(system: str, user_text: str, image_base64: str) -> str:
+    """Call OpenAI vision API with image. image_base64: raw base64 string (no data URL prefix)."""
+    settings = get_settings()
+    if not settings.openai_api_key:
+        raise ValueError("OPENAI_API_KEY not set")
+    if settings.log_llm_prompts:
+        logger.info("LLM VISION SYSTEM (len=%d), user_text (len=%d)", len(system), len(user_text))
+    from openai import OpenAI
+    client = OpenAI(api_key=settings.openai_api_key)
+    content = [
+        {"type": "text", "text": user_text},
+        {"type": "image_url", "image_url": {"url": f"data:image/png;base64,{image_base64}"}},
+    ]
+    resp = client.chat.completions.create(
+        model=settings.llm_model,
+        temperature=0,
+        messages=[
+            {"role": "system", "content": system},
+            {"role": "user", "content": content},
         ],
     )
     return (resp.choices[0].message.content or "").strip()
@@ -158,6 +190,16 @@ def llm_scale_extractor(region_id: str, text: str, document_version_id: str) -> 
     return out
 
 
+def _normalize_mapping_section_path(mappings: list[dict]) -> None:
+    """Ensure section_path is list[str]; CanonicalMappingItem requires list, LLM/soce_parser may return str."""
+    for m in mappings:
+        sp = m.get("section_path")
+        if isinstance(sp, str):
+            m["section_path"] = [sp.strip()] if sp.strip() else []
+        elif sp is not None and not isinstance(sp, list):
+            m["section_path"] = []
+
+
 def llm_canonical_mapper(
     statement_lines: list[dict],
     document_version_id: str,
@@ -172,6 +214,7 @@ def llm_canonical_mapper(
     payload = {"document_version_id": document_version_id, "lines": statement_lines}
     cached = get_cached(TASK_CANONICAL_MAPPER, payload)
     if cached is not None:
+        _normalize_mapping_section_path(cached.get("mappings") or [])
         return CanonicalMappingOutput.model_validate(cached)
     settings = get_settings()
     if not settings.openai_api_key:
@@ -183,9 +226,11 @@ def llm_canonical_mapper(
         chunk = statement_lines[i : i + batch_size]
         content = _call_llm(CANONICAL_MAPPING_SYSTEM, build_canonical_mapping_prompt(chunk))
         data = _parse_json_response(content)
-        for m in data.get("mappings", []):
+        mappings = data.get("mappings") or []
+        for m in mappings:
             if m.get("confidence", 0) < confidence_threshold:
                 m["canonical_key"] = "UNMAPPED"
+        _normalize_mapping_section_path(mappings)
         out_chunk = CanonicalMappingOutput.model_validate(data)
         all_mappings.extend([m.model_dump() for m in out_chunk.mappings])
 
@@ -236,10 +281,11 @@ def llm_statement_table_parser(
     text: str,
     statement_type_hint: str | None,
     document_version_id: str,
+    doc_hash: str | None = None,
 ) -> StatementTableParseOutput | None:
     """
-    Universal table parser: given raw statement text, return column headers (period_labels)
-    and data rows (raw_label + values_json). Same flow for SFP, SCI, CF, SOCE.
+    Universal table parser: given raw statement text, return column structure + data rows.
+    Cache key includes doc_hash when provided (avoids mixed outputs across schema changes).
     """
     if not (text or "").strip():
         return StatementTableParseOutput(period_labels=[], lines=[], warnings=["empty text"])
@@ -248,6 +294,7 @@ def llm_statement_table_parser(
         "region_id": region_id,
         "text": text[:12000],
         "statement_type_hint": statement_type_hint,
+        "doc_hash": doc_hash,
     }
     cached = get_cached(TASK_STATEMENT_TABLE_PARSER, payload)
     if cached is not None:
@@ -262,4 +309,68 @@ def llm_statement_table_parser(
     data = _parse_json_response(content)
     out = StatementTableParseOutput.model_validate(data)
     set_cached(TASK_STATEMENT_TABLE_PARSER, payload, out.model_dump(), settings.llm_model)
+    return out
+
+
+def llm_soce_layout_from_image(
+    image_base64: str,
+    text_preview: str,
+    document_version_id: str,
+    page_no: int,
+    doc_hash: str | None = None,
+) -> SoCELayoutOutput | None:
+    """
+    Analyze SoCE page image to infer table structure: Notes column, column order, periods.
+    image_base64: raw base64 PNG bytes (no data URL prefix).
+    """
+    payload = {
+        "document_version_id": document_version_id,
+        "page_no": page_no,
+        "text_preview": (text_preview or "")[:2000],
+        "doc_hash": doc_hash,
+    }
+    # Cache uses text hash; image would make key huge, so we key by doc+page+text
+    cached = get_cached(TASK_SOCE_LAYOUT, payload)
+    if cached is not None:
+        return SoCELayoutOutput.model_validate(cached)
+    settings = get_settings()
+    if not settings.openai_api_key:
+        return None
+    prompt = build_soce_layout_prompt(text_preview or "")
+    content = _call_llm_vision(SOCE_LAYOUT_VISION_SYSTEM, prompt, image_base64)
+    data = _parse_json_response(content)
+    out = SoCELayoutOutput.model_validate(data)
+    set_cached(TASK_SOCE_LAYOUT, payload, out.model_dump(), settings.llm_model)
+    return out
+
+
+def llm_soce_table_from_image(
+    image_base64: str,
+    document_version_id: str,
+    page_no: int,
+    doc_hash: str | None = None,
+    pdf_text: str | None = None,
+) -> SoCETableExtractOutput | None:
+    """
+    Extract the complete SoCE table from a page image. Returns column_keys, period_labels, and lines.
+    Uses only columns present in the image - no added columns.
+    """
+    payload = {
+        "document_version_id": document_version_id,
+        "page_no": page_no,
+        "doc_hash": doc_hash,
+        "task": TASK_SOCE_TABLE_EXTRACT,
+        "pdf_text_hash": str(hash(pdf_text or "")),
+    }
+    cached = get_cached(TASK_SOCE_TABLE_EXTRACT, payload)
+    if cached is not None:
+        return SoCETableExtractOutput.model_validate(cached)
+    settings = get_settings()
+    if not settings.openai_api_key:
+        return None
+    prompt = build_soce_table_extract_prompt(pdf_text or "")
+    content = _call_llm_vision(SOCE_TABLE_EXTRACT_SYSTEM, prompt, image_base64)
+    data = _parse_json_response(content)
+    out = SoCETableExtractOutput.model_validate(data)
+    set_cached(TASK_SOCE_TABLE_EXTRACT, payload, out.model_dump(), settings.llm_model)
     return out

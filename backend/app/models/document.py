@@ -33,6 +33,7 @@ class DocumentVersion(Base, BaseModel):
     statements = relationship("Statement", back_populates="document_version")
     notes_index_entries = relationship("NotesIndex", back_populates="document_version")
     note_extractions = relationship("NoteExtraction", back_populates="document_version")
+    note_chunks = relationship("NoteChunk", back_populates="document_version")
     validation_reports = relationship("ValidationReport", back_populates="document_version")
 
 

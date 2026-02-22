@@ -8,7 +8,7 @@ import fitz  # PyMuPDF
 
 from app.config import get_settings
 from app.models.document import DocumentVersion, Document, PageAsset, PageLayout
-from app.models.extraction import PresentationContext, NotesIndex, NoteExtraction, Statement, StatementLine
+from app.models.extraction import PresentationContext, NotesIndex, NoteExtraction, NoteChunk, Statement, StatementLine
 from app.models.mapping import NormalizedFact
 from app.models.metrics import MetricFact, RatingModel, RatingResult
 from app.models.company import CreditReview, CreditReviewVersion, Engagement, ReviewStatus
@@ -203,6 +203,80 @@ def _lines_from_region_text(text: str, statement_type: str, section_path: list[s
     return lines
 
 
+# Canonical SoCE column keys (must match soce_parser and export)
+_SOCE_CANONICAL_KEYS = (
+    "total_equity", "non_controlling_interest", "attributable_total",
+    "stated_capital", "treasury_shares", "other_reserves", "retained_earnings",
+)
+
+
+def _parse_soce_column_id(col_id: str, period_labels: list[str]) -> tuple[str | None, str | None]:
+    """Parse column id like total_equity_2024 -> (soce_key, period). Returns (None, None) if not SoCE format."""
+    for p in period_labels:
+        if col_id.endswith(f"_{p}"):
+            prefix = col_id[: -len(p) - 1]
+            if prefix in _SOCE_CANONICAL_KEYS:
+                return (prefix, p)
+    return (None, None)
+
+
+def _build_soce_values_json_from_llm(
+    raw_value_strings: dict,
+    columns: list[dict],
+    period_labels: list[str],
+    scale_factor: float,
+) -> tuple[dict, list[str]]:
+    """Build values_json {period: {soce_key: value}} from LLM SoCE output. Returns (values_json, soce_columns_in_order)."""
+    from app.services.value_parser import parse_raw_value_string
+    values_json: dict[str, dict[str, float | None]] = {p: {} for p in period_labels}
+    soce_columns_ordered: list[str] = []
+    seen: set[str] = set()
+    for c in columns:
+        cid = c.get("id", "")
+        soce_key, period = _parse_soce_column_id(cid, period_labels)
+        if soce_key and period:
+            if soce_key not in seen:
+                seen.add(soce_key)
+                soce_columns_ordered.append(soce_key)
+            raw = raw_value_strings.get(cid)
+            parsed = parse_raw_value_string(raw) if raw else None
+            val = float(parsed * scale_factor) if parsed is not None else None
+            values_json.setdefault(period, {})[soce_key] = val
+    if not soce_columns_ordered:
+        soce_columns_ordered = list(_SOCE_CANONICAL_KEYS)
+    return values_json, soce_columns_ordered
+
+
+def _values_json_for_storage(
+    parsed: dict[str, float | None],
+    column_keys: list[str],
+    columns: list[dict],
+    period_labels: list[str],
+) -> dict[str, float | None]:
+    """Convert parsed to values_json; use label and year keys so export lookup works regardless of label format."""
+    cols_by_id = {c["id"]: c for c in columns}
+    out: dict[str, float | None] = {}
+    for i, k in enumerate(column_keys):
+        v = parsed.get(k)
+        col = cols_by_id.get(k) if cols_by_id else None
+        label = col.get("label") if col else (period_labels[i] if i < len(period_labels) else k)
+        out[label] = v
+        # Also store under year key (2025, 2024) so export finds values when period_labels differ
+        if v is not None and label:
+            m = re.search(r"\b(20\d{2})\b", str(label))
+            if m and m.group(1) not in out:
+                out[m.group(1)] = v
+    return out if out else dict(parsed)
+
+
+def _raw_value_string_from_parsed(val: float | None) -> str | None:
+    """Convert a parsed numeric to a string for raw_value_strings (legacy compat)."""
+    if val is None:
+        return None
+    s = str(int(val)) if isinstance(val, float) and val.is_integer() else str(val)
+    return f" ({s}) " if val < 0 else f" {s} "
+
+
 def _parse_amount(raw: str) -> float | None:
     """Parse a numeric amount from a string, preserving sign and brackets; return None if not a plain amount."""
     s = raw.strip().replace("\u00a0", " ")
@@ -259,14 +333,21 @@ def _extract_structured_lines_from_statement_page(
     def flush_current() -> None:
         nonlocal current_label, current_note, current_values, line_no, lines
         if current_label and any(v is not None for v in current_values):
-            values_json = {
-                lbl: v for lbl, v in zip(period_labels, current_values) if v is not None
+            raw_value_strings = {
+                lbl: _raw_value_string_from_parsed(v) if i < len(current_values) else None
+                for i, lbl in enumerate(period_labels)
             }
+            values_json = {}
+            for i, lbl in enumerate(period_labels):
+                if i < len(current_values):
+                    v = current_values[i]
+                    values_json[lbl] = v
             lines.append(
                 {
                     "line_no": line_no,
                     "raw_label": current_label,
                     "note": current_note,
+                    "raw_value_strings": raw_value_strings,
                     "values_json": values_json,
                 }
             )
@@ -361,7 +442,6 @@ def _extract_structured_lines_from_statement_page(
                         continue
                     inline_amounts.append(amt_tok)
                 if label_part and inline_amounts:
-                    # Flush previous row and start a new structured one
                     if current_label:
                         flush_current()
                     current_label = label_part
@@ -590,40 +670,271 @@ def run_extraction(document_version_id: str):
                 continue
             region_id = region.get("region_id", "")
             page = region.get("page")
-            # Try universal LLM table parser first
-            parse_out = llm_statement_table_parser(region_id, text, stype, dv_id)
+            from app.services.column_normalizer import derive_columns_from_period_labels
+            columns: list[dict] = []
+            doc_hash = getattr(version, "sha256", None) if version else None
+
+            # SoCE: deterministic geometry pipeline first; fallback to LLM
+            if stype == "SOCE":
+                from app.services.soce_parser import extract_soce_structured_lines
+                from app.services.soce_geometry_extractor import extract_soce_structured_lines_geometry
+                from app.services.soce_page_image import upload_soce_page_image
+                from app.services.llm.tasks import llm_soce_table_from_image
+
+                soce_lines: list[dict] = []
+                if page and doc and version and doc.storage_url:
+                    try:
+                        pdf_bytes = download_file_from_url(doc.storage_url)
+                        soce_lines = extract_soce_structured_lines_geometry(pdf_bytes, page, start_line_no=1)
+                        if not soce_lines:
+                            _, png_bytes = upload_soce_page_image(
+                                pdf_bytes, page, str(doc.tenant_id), str(version.id)
+                            )
+                            import base64
+                            b64 = base64.b64encode(png_bytes).decode("ascii")
+                            out = llm_soce_table_from_image(
+                                b64, str(version.id), page, doc_hash=doc_hash, pdf_text=text
+                            )
+                            if out and out.lines and out.column_headers:
+                                headers = list(out.column_headers)
+                                columns = [str(i) for i in range(len(headers))]
+                                for i, line in enumerate(out.lines):
+                                    vals = line.values if hasattr(line, "values") else []
+                                    values_by_col: dict[str, float | None] = {}
+                                    for j in range(len(columns)):
+                                        v = vals[j] if j < len(vals) else None
+                                        values_by_col[str(j)] = float(v) if v is not None else None
+                                    soce_lines.append({
+                                        "line_no": 1 + i,
+                                        "raw_label": line.raw_label,
+                                        "note": line.note_ref,
+                                        "values_json": {"": values_by_col},
+                                        "section_path": line.section_path,
+                                        "evidence_json": {"page": page},
+                                        "column_keys": columns,
+                                        "column_headers": headers,
+                                        "period_labels": [""],
+                                    })
+                    except Exception as e:
+                        log.warning("SoCE LLM table extraction failed: %s", e)
+                if not soce_lines:
+                    soce_lines = extract_soce_structured_lines(
+                        text, start_line_no=1, page_no=page
+                    )
+                if soce_lines:
+                    column_keys = soce_lines[0].get("column_keys") or []
+                    column_headers = soce_lines[0].get("column_headers") or []
+                    period_labels = soce_lines[0].get("period_labels") or [""]
+                    doc_sf = scale_info.get("scale_factor") or 1.0
+                    rows = []
+                    for x in soce_lines:
+                        vj = x.get("values_json") or {}
+                        if doc_sf != 1.0 and vj:
+                            scaled_vj = {}
+                            for period, cols in vj.items():
+                                scaled_vj[period] = {
+                                    c: (float(v) * doc_sf if v is not None else None)
+                                    for c, v in cols.items()
+                                }
+                            vj = scaled_vj
+                        rows.append({
+                            "raw_label": x["raw_label"],
+                            "raw_value_strings": {},
+                            "values_json": vj,
+                            "note_ref": x.get("note"),
+                            "section_path": x.get("section_path"),
+                            "row_role": "line_item",
+                        })
+                    key = "SoCE"
+                    if key not in parsed_by_type:
+                        parsed_by_type[key] = []
+                    parsed_by_type[key].append({
+                        "period_labels": period_labels,
+                        "soce_columns": column_keys,
+                        "soce_header_labels": column_headers,
+                        "columns_normalized": [],
+                        "rows": rows,
+                        "page": page,
+                        "scale_info": {},
+                    })
+                    continue  # skip LLM/heuristic for this region
+
+            # SFP, SCI, CF: try geometry extraction first, then LLM fallback
+            if stype in ("SFP", "SCI", "IS", "CF"):
+                from app.services.statement_geometry_extractor import extract_statement_structured_lines
+                
+                fs_lines: list[dict] = []
+                if page and doc and version and doc.storage_url:
+                    try:
+                        if 'pdf_bytes' not in dir() or pdf_bytes is None:
+                            pdf_bytes = download_file_from_url(doc.storage_url)
+                        fs_lines = extract_statement_structured_lines(pdf_bytes, page, stype, start_line_no=1)
+                    except Exception as e:
+                        log.warning("Geometry extraction failed for %s page %s: %s", stype, page, e)
+                
+                if fs_lines:
+                    # Get period labels from first line
+                    period_labels = fs_lines[0].get("period_labels") or ["current", "prior"]
+                    column_keys = period_labels
+                    doc_sf = scale_info.get("scale_factor") or 1.0
+                    rows = []
+                    for x in fs_lines:
+                        vj = x.get("values_json") or {}
+                        if doc_sf != 1.0 and vj:
+                            scaled_vj = {}
+                            for period, cols in vj.items():
+                                if isinstance(cols, dict):
+                                    scaled_vj[period] = {
+                                        c: (float(v) * doc_sf if v is not None else None)
+                                        for c, v in cols.items()
+                                    }
+                                else:
+                                    scaled_vj[period] = float(cols) * doc_sf if cols is not None else None
+                            vj = scaled_vj
+                        rows.append({
+                            "raw_label": x.get("raw_label") or "",
+                            "raw_value_strings": {},
+                            "values_json": vj,
+                            "note_ref": x.get("note"),
+                            "section_path": x.get("section_path"),
+                            "row_role": "line_item",
+                        })
+                    key = stype
+                    if key not in parsed_by_type:
+                        parsed_by_type[key] = []
+                    parsed_by_type[key].append({
+                        "period_labels": period_labels,
+                        "columns_normalized": [],
+                        "rows": rows,
+                        "page": page,
+                        "scale_info": {},
+                    })
+                    continue  # skip LLM/heuristic for this region
+
+            parse_out = llm_statement_table_parser(region_id, text, stype, dv_id, doc_hash=doc_hash)
             if parse_out is not None and (parse_out.period_labels or parse_out.lines):
                 period_labels = parse_out.period_labels or ["current", "prior"]
-                rows = [
-                    {
+                from app.services.value_parser import parse_and_scale, scale_factor_from_literal
+                from app.services.column_normalizer import (
+                    derive_columns_from_period_labels,
+                    get_column_ids,
+                    raw_value_strings_to_column_keys,
+                )
+                cols_raw = [c.model_dump() if hasattr(c, "model_dump") else c for c in (getattr(parse_out, "columns_normalized", None) or [])]
+                columns = cols_raw if cols_raw else derive_columns_from_period_labels(period_labels)
+                value_column_ids = get_column_ids(columns, value_only=True)
+                column_keys = value_column_ids if value_column_ids else period_labels
+                if not scale_info.get("scale_factor") and parse_out.scale:
+                    scale_info["scale_factor"] = scale_factor_from_literal(parse_out.scale)
+                    scale_info["scale"] = parse_out.scale
+                table_scale_factor = scale_factor_from_literal(parse_out.scale) if parse_out.scale else scale_info.get("scale_factor") or 1.0
+                doc_scale = scale_info.get("scale_factor") or 1.0
+                sf = table_scale_factor if table_scale_factor and table_scale_factor != 1.0 else doc_scale
+                cols_by_id = {c["id"]: c for c in columns}
+                soce_columns_from_llm = []
+                # SOCE + LLM: detect SoCE-style column ids (soce_key_period)
+                is_llm_soce = (
+                    stype == "SOCE"
+                    and columns
+                    and any(_parse_soce_column_id(c.get("id", ""), period_labels)[0] for c in columns)
+                )
+
+                rows = []
+                soce_columns_from_llm: list[str] = []
+                for line in parse_out.lines:
+                    raw_strs = getattr(line, "raw_value_strings", None) or {}
+                    legacy_vals = getattr(line, "values_json", None)
+                    if is_llm_soce and raw_strs:
+                        values_json, soce_cols = _build_soce_values_json_from_llm(
+                            raw_strs, columns, period_labels, sf
+                        )
+                        if soce_cols and not soce_columns_from_llm:
+                            soce_columns_from_llm = soce_cols
+                    elif raw_strs and any(v is not None and str(v).strip() for v in raw_strs.values()):
+                        raw_mapped = raw_value_strings_to_column_keys(raw_strs, columns) if columns else raw_strs
+                        parsed = parse_and_scale(raw_mapped, column_keys, scale_factor=sf)
+                        values_json = _values_json_for_storage(parsed, column_keys, columns, period_labels)
+                    elif legacy_vals:
+                        values_json = {}
+                        for lbl, v in legacy_vals.items():
+                            if lbl in period_labels:
+                                values_json[lbl] = float(v) * sf if v is not None else None
+                        # Include keys matching period_labels by year (e.g. "2025" when period_labels has "52 weeks 2025 Rm")
+                        for lbl, v in legacy_vals.items():
+                            if v is not None and lbl not in values_json:
+                                m = re.search(r"\b(20\d{2})\b", str(lbl))
+                                if m:
+                                    yr = m.group(1)
+                                    for pl in period_labels:
+                                        if yr in str(pl):
+                                            values_json[pl] = float(v) * sf
+                                            values_json[yr] = float(v) * sf
+                                            break
+                        if not values_json:
+                            values_json = {lbl: (float(v) * sf if v is not None else None) for lbl, v in legacy_vals.items()}
+                        raw_strs = {lbl: _raw_value_string_from_parsed(v) for lbl, v in (legacy_vals or {}).items()}
+                    else:
+                        values_json = {}
+                    rows.append({
                         "raw_label": line.raw_label,
-                        "values_json": line.values_json,
+                        "raw_value_strings": raw_strs,
+                        "values_json": values_json,
                         "note_ref": line.note_ref,
                         "section_path": line.section_path,
-                    }
-                    for line in parse_out.lines
-                ]
+                        "row_role": getattr(line, "row_role", "line_item"),
+                    })
             else:
-                # Fallback: heuristic parser (same for all statement types)
+                # Fallback: heuristic parser (apply doc scale)
                 period_labels = _detect_period_labels_from_text(text) or ["current", "prior"]
+                columns = derive_columns_from_period_labels(period_labels)
                 structured = _extract_structured_lines_from_statement_page(
                     text, period_labels, start_line_no=1, statement_type=stype
                 )
-                rows = [
-                    {
+                doc_sf = scale_info.get("scale_factor") or 1.0
+                rows = []
+                for row in structured:
+                    vj = row.get("values_json") or {}
+                    scaled = {lbl: (float(v) * doc_sf if v is not None else None) for lbl, v in vj.items()}
+                    rows.append({
                         "raw_label": row["raw_label"],
-                        "values_json": row["values_json"],
+                        "raw_value_strings": row.get("raw_value_strings", {}),
+                        "values_json": scaled,
                         "note_ref": row.get("note"),
                         "section_path": None,
-                    }
-                    for row in structured
-                ]
+                        "row_role": "line_item",
+                    })
             if not rows:
                 continue
             key = "SoCE" if stype == "SOCE" else stype
             if key not in parsed_by_type:
                 parsed_by_type[key] = []
-            parsed_by_type[key].append({"period_labels": period_labels, "rows": rows, "page": page})
+            chunk_cols = columns
+            chunk_scale = {}
+            if parse_out is not None:
+                chunk_scale = {"scale": getattr(parse_out, "scale", None), "scale_evidence": getattr(parse_out, "scale_evidence", None), "scale_source": getattr(parse_out, "scale_source", None)}
+            chunk_extra: dict = {}
+            if stype == "SOCE" and soce_columns_from_llm:
+                chunk_extra["soce_columns"] = soce_columns_from_llm
+            parsed_by_type[key].append({
+                "period_labels": period_labels,
+                "columns_normalized": chunk_cols,
+                "rows": rows,
+                "page": page,
+                "scale_info": chunk_scale,
+                **chunk_extra,
+            })
+
+        # Refresh DB session before bulk persist: connection may have gone stale during long LLM work
+        # (cloud Postgres like Neon often close idle SSL connections after 1–2 min)
+        try:
+            db.commit()
+        except Exception:
+            db.rollback()
+        db.close()
+        db = get_sync_session()
+        version = db.get(DocumentVersion, UUID(document_version_id))
+        if not version:
+            return {"error": "DocumentVersion not found after session refresh"}
 
         # Build statement_lines for canonical mapper from parsed lines only (no raw split)
         statement_lines = []
@@ -638,7 +949,10 @@ def run_extraction(document_version_id: str):
         if statement_lines:
             map_result = llm_canonical_mapper(statement_lines, dv_id)
             if map_result:
-                payload = map_result.model_dump()
+                from app.services.canonical_keys import apply_mapping_gate
+                mappings_list = [m.model_dump() for m in map_result.mappings]
+                gated = apply_mapping_gate(mappings_list)
+                payload = {"mappings": gated}
                 _inject_evidence_dv_id(payload, dv_id)
                 db.add(PresentationContext(
                     document_version_id=version.id,
@@ -655,19 +969,36 @@ def run_extraction(document_version_id: str):
                     period_labels = chunks[0]["period_labels"]
                     if not period_labels:
                         period_labels = ["current", "prior"]
+                    soce_columns = chunks[0].get("soce_columns")
+                    soce_header_labels = chunks[0].get("soce_header_labels")
+                    if stype_key == "SoCE" and soce_columns:
+                        periods_json = [
+                            {"label": lbl, "columns": list(soce_columns), "header_labels": soce_header_labels or []}
+                            for lbl in period_labels
+                        ]
+                    else:
+                        periods_json = [{"label": lbl} for lbl in period_labels]
                     stmt = Statement(
                         document_version_id=version.id,
                         statement_type=stype_key,
                         entity_scope="GROUP",
-                        periods_json=[{"label": lbl} for lbl in period_labels],
+                        periods_json=periods_json,
                     )
                     db.add(stmt)
                     db.flush()
                     line_no = 1
                     for chunk in chunks:
                         page = chunk.get("page")
-                        ev = {"page": page} if page is not None else {}
+                        ev = {}
+                        if page is not None:
+                            ev["page"] = page
+                            ev["pages"] = [page]
                         for row in chunk["rows"]:
+                            ev_row = dict(ev)
+                            if row.get("raw_value_strings"):
+                                ev_row["raw_value_strings"] = row["raw_value_strings"]
+                            if row.get("row_role"):
+                                ev_row["row_role"] = row["row_role"]
                             sl = StatementLine(
                                 statement_id=stmt.id,
                                 line_no=line_no,
@@ -675,85 +1006,183 @@ def run_extraction(document_version_id: str):
                                 section_path=row.get("section_path"),
                                 note_refs_json=[row["note_ref"]] if row.get("note_ref") else [],
                                 values_json=row["values_json"],
-                                evidence_json=ev,
+                                evidence_json=ev_row,
                             )
                             db.add(sl)
                             line_no += 1
 
-        # D) Notes: per-packet LLM classification + strict extractors + NotesIndex / NoteExtraction
-        # DISABLED: Focus on statements first; re-enable when statements are stable.
-        note_extractions: list[dict] = []
-        # scale_factor = scale_info.get("scale_factor") or 1e6
-        # unit = f"{scale_info.get('currency') or 'ZAR'}_{scale_info.get('scale') or 'million'}"
+        # D) Notes: index + chunk + manifest (on-demand retrieval pattern)
+        index_entries = extract_notes_index_from_pages(locator_pages)
+        if not index_entries:
+            index_entries = infer_index_from_packets(note_packets)
+        for idx_entry in index_entries:
+            ni = NotesIndex(
+                document_version_id=version.id,
+                note_number=idx_entry.note_number,
+                title=idx_entry.title,
+                start_page=idx_entry.start_page,
+                end_page=idx_entry.end_page,
+                confidence=idx_entry.confidence,
+            )
+            db.add(ni)
 
-        # # NotesIndex: try index extractor first, else infer from packets
-        # index_entries = extract_notes_index_from_pages(locator_pages)
-        # if not index_entries:
-        #     index_entries = infer_index_from_packets(note_packets)
-        # for idx_entry in index_entries:
-        #     ni = NotesIndex(
-        #         document_version_id=version.id,
-        #         note_number=idx_entry.note_number,
-        #         title=idx_entry.title,
-        #         start_page=idx_entry.start_page,
-        #         end_page=idx_entry.end_page,
-        #         confidence=idx_entry.confidence,
-        #     )
-        #     db.add(ni)
+        from app.services.notes_chunker import chunk_note_text
+        from app.services.notes_manifest_builder import build_notes_manifest
+        from app.services.note_table_extractor import extract_tables_from_note_text
+        from app.services.notes_embedding import get_embeddings
 
-        # for pkt in note_packets:
-        #     packet_text = "\n\n".join(pg.get("text", "") for pg in pkt.get("pages", []))[:_EXTRACTION_TEXT_LIMIT]
-        #     if not packet_text.strip():
-        #         continue
-        #     first_page = pkt.get("pages", [{}])[0].get("page", 0)
-        #     packet_type = pkt.get("packet_type", "OTHER")
-        #     note_nums = pkt.get("note_numbers", [])
+        chunk_rows: list[tuple[NoteChunk, str]] = []  # (nc, text_for_embedding)
 
-        #     # Per-packet: extract blocks and LLM classify
-        #     blocks = _extract_note_blocks(packet_text)
-        #     for num, title, body in blocks[:10]:
-        #         note_result = llm_note_classifier(num, title, body[:15000], dv_id)
-        #         if note_result:
-        #             note_results.append(note_result.model_dump())
-        #             tasks_done += 1
+        for pkt in note_packets:
+            packet_pages = pkt.get("pages", [])
+            packet_text = "\n\n".join(pg.get("text", "") for pg in packet_pages)[:_EXTRACTION_TEXT_LIMIT]
+            if not packet_text.strip():
+                continue
+            first_page = packet_pages[0].get("page", 0) if packet_pages else 0
+            last_page = packet_pages[-1].get("page", first_page) if packet_pages else first_page
+            packet_type = pkt.get("packet_type", "OTHER")
+            note_nums = pkt.get("note_numbers", [])
+            note_no = str(note_nums[0]) if note_nums else "0"
+            title = packet_type.replace("_", " ").title()
 
-        #     # Run strict extractor based on packet_type
-        #     llm_type = "DEBT" if packet_type == "borrowings" else (
-        #         "LEASES" if packet_type == "leases" else (
-        #             "CONTINGENCIES" if packet_type == "contingencies" else "RISK" if packet_type == "risk" else "OTHER"
-        #         )
-        #     )
-        #     extracted = extract_note_by_type(
-        #         llm_type if llm_type != "OTHER" else packet_type,
-        #         packet_text,
-        #         first_page,
-        #         unit=unit,
-        #         scale=scale_factor,
-        #     )
-        #     ne = NoteExtraction(
-        #         document_version_id=version.id,
-        #         note_number=str(note_nums[0]) if note_nums else None,
-        #         title=packet_type.replace("_", " ").title(),
-        #         blocks_json=[],
-        #         tables_json=extracted.get("fields", {}),
-        #         evidence_json={"extraction": extracted, "pages": [pg.get("page") for pg in pkt.get("pages", [])]},
-        #     )
-        #     db.add(ne)
-        #     note_extractions.append(extracted)
+            chunks = chunk_note_text(
+                full_text=packet_text,
+                scope="GROUP",
+                note_number=note_no,
+                title=title,
+                page_start=first_page,
+                page_end=last_page,
+            )
+            for c in chunks:
+                tables = extract_tables_from_note_text(c.text, first_page)
+                tables_json = tables if tables else []
+                nc = NoteChunk(
+                    document_version_id=version.id,
+                    scope="GROUP",
+                    note_id=c.note_id,
+                    chunk_id=c.chunk_id,
+                    title=c.title,
+                    page_start=c.page_start,
+                    page_end=c.page_end,
+                    text=c.text,
+                    tables_json=tables_json,
+                    tokens_approx=len(c.text) // 4,
+                    keywords_json=c.keywords,
+                )
+                db.add(nc)
+                db.flush()
+                chunk_rows.append((nc, (c.title or "") + "\n" + c.text))
 
-        # if note_results:
-        #     _inject_evidence_dv_id(note_results, dv_id)
-        #     db.add(PresentationContext(
-        #         document_version_id=version.id,
-        #         scope="DOC",
-        #         scope_key="note_classifications",
-        #         evidence_json={"notes": note_results, "note_extractions": note_extractions},
-        #     ))
+        # Generate embeddings in batch (requires OPENAI_API_KEY, pgvector)
+        if chunk_rows:
+            texts = [t for _, t in chunk_rows]
+            try:
+                embeddings = get_embeddings(texts)
+                for (nc, _), emb in zip(chunk_rows, embeddings):
+                    if emb and len(emb) == 1536:
+                        setattr(nc, "embedding", emb)
+            except Exception as e:
+                log.warning("Note chunk embeddings skipped: %s", e)
+
+        if note_packets:
+            period_end = scale_info.get("period_end") or None
+            build_notes_manifest(db, version.id, scope="GROUP", period_end=period_end)
+
+        # E) Structured notes extraction using notes_store (new geometry-based approach)
+        # This extracts full note content with subsections for LLM retrieval
+        try:
+            from app.services.notes_store import extract_notes_structured, notes_to_json
+            from app.services.storage import upload_json_to_storage
+            
+            # Download PDF if not already available
+            if 'pdf_bytes' not in dir() or pdf_bytes is None:
+                pdf_bytes = download_file_from_url(doc.storage_url)
+            
+            # Extract structured notes
+            structured_notes = extract_notes_structured(pdf_bytes, scope="GROUP")
+            if structured_notes:
+                log.info("Extracted %d structured notes for document %s", len(structured_notes), document_version_id)
+                
+                # Save notes JSON to storage
+                notes_json = notes_to_json(structured_notes)
+                storage_key = f"notes/{doc.tenant_id}/{version.id}/notes_structured.json"
+                try:
+                    upload_json_to_storage(storage_key, notes_json)
+                    log.info("Uploaded structured notes JSON to: %s", storage_key)
+                except Exception as e:
+                    log.warning("Failed to upload notes JSON to S3: %s", e)
+                
+                # Also update NotesIndex with better data from structured extraction
+                for note_id, note_section in structured_notes.items():
+                    # Check if we already have this note in the index
+                    existing = db.query(NotesIndex).filter(
+                        NotesIndex.document_version_id == version.id,
+                        NotesIndex.note_number == note_id,
+                    ).first()
+                    
+                    if existing:
+                        # Update with better data
+                        existing.title = note_section.title
+                        existing.start_page = min(note_section.pages) if note_section.pages else existing.start_page
+                        existing.end_page = max(note_section.pages) if note_section.pages else existing.end_page
+                    else:
+                        # Create new index entry
+                        ni = NotesIndex(
+                            document_version_id=version.id,
+                            note_number=note_id,
+                            title=note_section.title,
+                            start_page=min(note_section.pages) if note_section.pages else 0,
+                            end_page=max(note_section.pages) if note_section.pages else 0,
+                            confidence=0.95,
+                        )
+                        db.add(ni)
+        except Exception as e:
+            log.warning("Structured notes extraction failed: %s", e)
 
         # Commit now to persist and release connection (avoids SSL timeout during long LLM runs)
         db.commit()
 
-        # F) Reconciliation checks: SOFP vs Note (borrowings, lease liabilities)
+        # F) Statement validation gates (SFP equation, CF reconciliation, sign sanity)
+        from app.services.statement_validation import run_statement_validation
+        stmt_for_validation = []
+        for stype_key, chunks in parsed_by_type.items():
+            if not chunks:
+                continue
+            pl = chunks[0].get("period_labels") or ["current", "prior"]
+            cols = chunks[0].get("columns_normalized") or []
+            all_lines = []
+            for c in chunks:
+                for row in c.get("rows", []):
+                    all_lines.append({
+                        "raw_label": row.get("raw_label", ""),
+                        "values_json": row.get("values_json", {}),
+                        "raw_value_strings": row.get("raw_value_strings", {}),
+                        "row_role": row.get("row_role", "line_item"),
+                    })
+            stmt_for_validation.append({
+                "statement_type": stype_key,
+                "period_labels": pl,
+                "periods": [{"label": lbl} for lbl in pl],
+                "columns_normalized": cols,
+                "lines": all_lines,
+            })
+        ctx_canon = db.query(PresentationContext).filter(
+            PresentationContext.document_version_id == version.id,
+            PresentationContext.scope == "DOC",
+            PresentationContext.scope_key == "canonical_mappings",
+        ).first()
+        validation_result = run_statement_validation(
+            stmt_for_validation,
+            canonical_mappings=ctx_canon.evidence_json if ctx_canon else None,
+        )
+        db.add(PresentationContext(
+            document_version_id=version.id,
+            scope="DOC",
+            scope_key="statement_validation",
+            evidence_json=validation_result,
+        ))
+
+        # G) Reconciliation checks: SOFP vs Note (borrowings, lease liabilities)
         from sqlalchemy.orm import selectinload
 
         stmt_rows = db.query(Statement).filter(

@@ -13,7 +13,7 @@ from app.api.deps import get_current_user
 from app.models.tenancy import User
 from app.models.company import Company
 from app.models.document import Document, DocumentVersion
-from app.models.extraction import PresentationContext, Statement, NotesIndex, NoteExtraction
+from app.models.extraction import PresentationContext, Statement, NotesIndex, NoteExtraction, NoteChunk
 from app.services.storage import upload_file, generate_doc_key, download_file_from_url
 from app.services.statements_export import (
     build_statements_xlsx,
@@ -76,6 +76,7 @@ class DocumentVersionSummaryResponse(BaseModel):
     note_classifications: dict | None = None
     notes_index: list[dict] | None = None
     note_extractions: list[dict] | None = None
+    notes_manifest: dict | None = None  # Compact manifest for on-demand chunk fetch
     reconciliation_checks: dict | None = None
 
 
@@ -261,6 +262,7 @@ async def get_document_version_summary(
     pres_scale = None
     mappings = None
     notes = None
+    notes_manifest = None
     for ctx in contexts:
         if ctx.scope == "DOC" and ctx.scope_key == "presentation_scale":
             pres_scale = ctx.evidence_json
@@ -268,6 +270,8 @@ async def get_document_version_summary(
             mappings = ctx.evidence_json
         elif ctx.scope == "DOC" and ctx.scope_key == "note_classifications":
             notes = ctx.evidence_json
+        elif ctx.scope == "DOC" and ctx.scope_key == "notes_manifest_GROUP":
+            notes_manifest = ctx.evidence_json
 
     recon_ctx_result = await db.execute(
         select(PresentationContext).where(
@@ -320,6 +324,7 @@ async def get_document_version_summary(
         note_classifications=notes,
         notes_index=notes_index_list if notes_index_list else None,
         note_extractions=note_extractions_list if note_extractions_list else None,
+        notes_manifest=notes_manifest,
         reconciliation_checks=reconciliation_checks,
     )
 
@@ -505,3 +510,116 @@ async def export_statements(
             "Content-Disposition": f'attachment; filename="{filename}"',
         },
     )
+
+
+class NoteChunksRequest(BaseModel):
+    note_ids: list[str]
+    max_tokens: int | None = 15000
+    scope: str = "GROUP"
+
+
+class NoteChunkResponse(BaseModel):
+    chunk_id: str
+    note_id: str
+    title: str
+    text: str
+    page_start: int | None
+    page_end: int | None
+    tables_json: list
+    keywords: list
+
+
+@router.post("/versions/{version_id}/notes/chunks", response_model=list[NoteChunkResponse])
+async def fetch_note_chunks_endpoint(
+    version_id: UUID,
+    body: NoteChunksRequest,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """
+    Fetch note chunks by note_ids. Caps total tokens if max_tokens set.
+    Used by the "ask for section when needed" flow.
+    """
+    result = await db.execute(
+        select(DocumentVersion, Document).join(Document, Document.id == DocumentVersion.document_id).where(
+            DocumentVersion.id == version_id,
+            Document.tenant_id == user.tenant_id,
+        )
+    )
+    row = result.one_or_none()
+    if not row:
+        raise HTTPException(status_code=404, detail="Version not found")
+    version, _doc = row
+
+    if not body.note_ids:
+        return []
+
+    q = (
+        select(NoteChunk)
+        .where(
+            NoteChunk.document_version_id == version.id,
+            NoteChunk.scope == body.scope,
+            NoteChunk.note_id.in_(body.note_ids),
+        )
+        .order_by(NoteChunk.note_id, NoteChunk.chunk_id)
+    )
+    r = await db.execute(q)
+    chunks = list(r.scalars().unique().all())
+
+    out: list[NoteChunkResponse] = []
+    total_tokens = 0
+    for nc in chunks:
+        tok = nc.tokens_approx or (len((nc.text or "")) // 4)
+        if body.max_tokens and total_tokens + tok > body.max_tokens:
+            break
+        out.append(NoteChunkResponse(
+            chunk_id=nc.chunk_id,
+            note_id=nc.note_id,
+            title=nc.title or "",
+            text=nc.text or "",
+            page_start=nc.page_start,
+            page_end=nc.page_end,
+            tables_json=nc.tables_json or [],
+            keywords=nc.keywords_json or [],
+        ))
+        total_tokens += tok
+    return out
+
+
+@router.get("/versions/{version_id}/notes/search", response_model=list[str])
+async def search_notes_endpoint(
+    version_id: UUID,
+    q: str = Query(..., min_length=2),
+    top_k: int = Query(5, ge=1, le=20),
+    scope: str = Query("GROUP"),
+    hybrid: bool = Query(True, description="Use hybrid (tsvector + semantic) search"),
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """
+    Search notes. Returns chunk_ids. Use hybrid=true for tsvector + semantic; false for keyword only.
+    """
+    result = await db.execute(
+        select(DocumentVersion).join(Document, Document.id == DocumentVersion.document_id).where(
+            DocumentVersion.id == version_id,
+            Document.tenant_id == user.tenant_id,
+        )
+    )
+    version = result.scalar_one_or_none()
+    if not version:
+        raise HTTPException(status_code=404, detail="Version not found")
+
+    import asyncio
+    from app.worker.tasks import get_sync_session
+    from app.services.notes_retrieval import search_notes_hybrid, search_notes_keyword
+
+    def _search():
+        sess = get_sync_session()
+        try:
+            if hybrid:
+                return search_notes_hybrid(sess, str(version.id), q, scope, top_k)
+            return search_notes_keyword(sess, str(version.id), q, scope, top_k)
+        finally:
+            sess.close()
+
+    return await asyncio.to_thread(_search)

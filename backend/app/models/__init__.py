@@ -8,6 +8,7 @@ from app.models.extraction import (
     StatementLine,
     NotesIndex,
     NoteExtraction,
+    NoteChunk,
 )
 from app.models.mapping import CanonicalAccount, MappingDecision, ValidationReport, NormalizedFact
 from app.models.facility import Facility, SecurityItem, Covenant, CovenantTest
@@ -35,6 +36,7 @@ __all__ = [
     "StatementLine",
     "NotesIndex",
     "NoteExtraction",
+    "NoteChunk",
     "CanonicalAccount",
     "MappingDecision",
     "ValidationReport",

@@ -4,10 +4,26 @@ Export extracted statements (and extraction summary) to CSV or Excel for trackin
 from __future__ import annotations
 
 import csv
+import re
 from io import BytesIO
 from typing import Any
 
 from openpyxl import Workbook
+
+# Characters illegal in Excel/OpenPyXL (control chars 0x00-0x08, 0x0B-0x0C, 0x0E-0x1F, 0x7F)
+_ILLEGAL_XLSX_RE = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]")
+
+
+def _sanitize_for_xlsx(val: Any) -> Any:
+    """Remove illegal characters from strings; numbers pass through."""
+    if val is None:
+        return ""
+    if isinstance(val, (int, float)):
+        return val
+    s = str(val)
+    return _ILLEGAL_XLSX_RE.sub("", s)
+
+
 from openpyxl.styles import Alignment, Font, PatternFill, Border, Side
 from openpyxl.utils import get_column_letter
 
@@ -21,8 +37,23 @@ def _period_columns(periods_json: list) -> list[str]:
 
 def _row_values(line: Any, period_labels: list[str]) -> list:
     """Values for a statement line in period order; values_json is {period_key: value}."""
+    import re
     values_json = getattr(line, "values_json", None) or {}
-    return [(v if v is not None else "") for lbl in period_labels for v in [values_json.get(lbl)]]
+    out: list = []
+    for lbl in period_labels:
+        v = values_json.get(lbl)
+        if v is None and lbl:
+            # Fallback: period label may differ (e.g. "2025" vs "52 weeks 2025 Rm"); match by year
+            m = re.search(r"\b(20\d{2})\b", str(lbl))
+            if m:
+                yr = m.group(1)
+                for k in values_json:
+                    if yr in str(k) or k == yr:
+                        v = values_json.get(k)
+                        if v is not None:
+                            break
+        out.append(v if v is not None else "")
+    return out
 
 
 def _soce_column_labels() -> dict[str, str]:
@@ -38,15 +69,60 @@ def _soce_column_labels() -> dict[str, str]:
     }
 
 
+# Label substrings/patterns that indicate a total or subtotal row (SFP, SCI, CF)
+_TOTAL_LABEL_PATTERNS = (
+    "total ",
+    "balance at",
+    "cash flows from operating",
+    "cash flows utilised by",
+    "net movement in cash",
+    "cash and cash equivalents at the end",
+    "cash generated from operations",
+    "total assets",
+    "total equity",
+    "total liabilities",
+    "total current assets",
+    "total non-current assets",
+    "total current liabilities",
+    "total non-current liabilities",
+    "total equity and liabilities",
+    "profit for the year",
+    "total comprehensive income",
+    "profit/(loss) for the year",
+    "comprehensive income for the year",
+)
+
+
+def _is_total_row(line: Any, raw_label: str) -> bool:
+    """True if this line is a total/subtotal that should use =SUM() in Excel."""
+    role = None
+    ev = getattr(line, "evidence_json", None) or {}
+    if isinstance(ev, dict):
+        role = ev.get("row_role")
+    if role in ("subtotal", "total"):
+        return True
+    lower = raw_label.strip().lower()
+    return any(p in lower for p in _TOTAL_LABEL_PATTERNS)
+
+
 def _row_values_soce(line: Any, periods_json: list) -> list:
     """Values for SoCE line: values_json is {period: {column: value}}."""
+    import re
     values_json = getattr(line, "values_json", None) or {}
     out: list = []
-    col_labels = _soce_column_labels()
     for p in periods_json:
         period_label = p.get("label", "")
         columns = p.get("columns") or []
         period_vals = values_json.get(period_label) if isinstance(values_json.get(period_label), dict) else {}
+        if not period_vals and period_label:
+            # Fallback: match by year (e.g. "52 weeks 2025" vs stored "2025")
+            m = re.search(r"\b(20\d{2})\b", str(period_label))
+            if m:
+                yr = m.group(1)
+                for k, v in values_json.items():
+                    if isinstance(v, dict) and (k == yr or yr in str(k)):
+                        period_vals = v
+                        break
         for col in columns:
             v = period_vals.get(col) if period_vals else None
             out.append(v if v is not None and v != "" else "")
@@ -103,7 +179,7 @@ def build_statements_xlsx(
         for ni in notes_index:
             ws_notes.append([
                 getattr(ni, "note_number", ""),
-                (getattr(ni, "title", "") or "")[:200],
+                _sanitize_for_xlsx((getattr(ni, "title", "") or "")[:200]),
                 getattr(ni, "start_page", ""),
                 getattr(ni, "end_page", ""),
                 getattr(ni, "confidence", ""),
@@ -131,11 +207,11 @@ def build_statements_xlsx(
                 pages = ev.get("pages", [])
                 for k, v in fields.items():
                     if k == "unit":
-                        ws.append([note_num, "unit", v, v, v])
+                        ws.append([note_num, "unit", _sanitize_for_xlsx(v), _sanitize_for_xlsx(v), _sanitize_for_xlsx(v)])
                     elif isinstance(v, dict):
                         y1 = v.get("2025", v.get("2024", ""))
                         y2 = v.get("2024", v.get("2025", ""))
-                        ws.append([note_num, k, y1, y2, ""])
+                        ws.append([note_num, _sanitize_for_xlsx(k), _sanitize_for_xlsx(y1), _sanitize_for_xlsx(y2), ""])
                 if pages:
                     ws.append([note_num, "source_pages", ",".join(str(p) for p in pages), "", ""])
 
@@ -171,14 +247,20 @@ def build_statements_xlsx(
         # SoCE: multi-column layout (Total equity, NCI, Stated capital, etc.) per period
         is_soce = stmt.statement_type == "SoCE" and periods_json and isinstance(periods_json[0].get("columns"), list)
         if is_soce:
-            # Build headers: Line item | Notes | [period1: col1, col2, ...] | [period2: col1, col2, ...] | Source pages
+            # Build headers: Line item | Notes | [value columns] | Source pages
+            # Use header_labels verbatim when present (from LLM image extraction); else col_labels mapping
             col_labels = _soce_column_labels()
             value_headers: list[str] = []
+            header_labels = periods_json[0].get("header_labels") if periods_json else []
             for p in periods_json:
                 period_label = p.get("label", "")
                 columns = p.get("columns") or []
-                for col in columns:
-                    label = col_labels.get(col, col.replace("_", " ").title())
+                labels = p.get("header_labels") or header_labels
+                for i, col in enumerate(columns):
+                    if labels and i < len(labels):
+                        label = labels[i]
+                    else:
+                        label = col_labels.get(col, col.replace("_", " ").title())
                     value_headers.append(f"{label} ({period_label})" if period_label else label)
             headers = ["Line item", "Notes"] + value_headers + ["Source pages"]
         else:
@@ -196,7 +278,7 @@ def build_statements_xlsx(
         title = statement_titles.get(stmt.statement_type, stmt.statement_type)
         if getattr(stmt, "entity_scope", None):
             title = f"{title} – {stmt.entity_scope.title()}"
-        ws.append([title])
+        ws.append([_sanitize_for_xlsx(title)])
         max_col = len(headers)
         ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=max_col)
         title_cell = ws.cell(row=1, column=1)
@@ -208,7 +290,7 @@ def build_statements_xlsx(
 
         # Header row
         header_row_idx = ws.max_row + 1
-        ws.append(headers)
+        ws.append([_sanitize_for_xlsx(h) for h in headers])
         for col_idx in range(1, len(headers) + 1):
             cell = ws.cell(row=header_row_idx, column=col_idx)
             cell.font = header_font
@@ -226,6 +308,8 @@ def build_statements_xlsx(
         # Data rows with section grouping similar to PDF layout
         seen_top_sections: set[str] = set()
         last_subsection_by_top: dict[str, str] = {}
+        # For SFP/SCI/CF: track first data row of current block to build =SUM() formulas
+        block_start_row: int | None = None
 
         for line in lines:
             raw_label = (getattr(line, "raw_label", "") or "")[:500]
@@ -238,7 +322,7 @@ def build_statements_xlsx(
             # Insert top-level section row (e.g. "Assets", "Equity", "Liabilities")
             if top and top not in seen_top_sections:
                 seen_top_sections.add(top)
-                ws.append([top])
+                ws.append([_sanitize_for_xlsx(top)])
                 r = ws.max_row
                 cell = ws.cell(row=r, column=1)
                 cell.font = section_font
@@ -247,7 +331,7 @@ def build_statements_xlsx(
             # Insert subsection row (e.g. "Non-current assets", "Current assets")
             if top and sub and last_subsection_by_top.get(top) != sub:
                 last_subsection_by_top[top] = sub
-                ws.append([sub])
+                ws.append([_sanitize_for_xlsx(sub)])
                 r = ws.max_row
                 cell = ws.cell(row=r, column=1)
                 cell.font = subsection_font
@@ -272,12 +356,42 @@ def build_statements_xlsx(
 
             row_idx = ws.max_row + 1
             num_val_cols = len(values)
-            ws.append(
-                [raw_label, notes_str] + values + [pages_str]
+            is_total = _is_total_row(line, raw_label)
+
+            # For SFP/SCI/CF totals: use =SUM() formulas instead of values
+            use_sum_formula = (
+                not is_soce
+                and is_total
+                and block_start_row is not None
+                and block_start_row <= row_idx - 1
             )
+            if use_sum_formula:
+                # Placeholder values; we'll overwrite with formulas after append
+                row_values_for_append = [""] * num_val_cols
+            else:
+                row_values_for_append = [_sanitize_for_xlsx(v) for v in values]
+
+            row_data = (
+                [_sanitize_for_xlsx(raw_label), _sanitize_for_xlsx(notes_str)]
+                + row_values_for_append
+                + [_sanitize_for_xlsx(pages_str)]
+            )
+            ws.append(row_data)
+
+            # Overwrite value cells with =SUM() for total rows (SFP/SCI/CF)
+            if use_sum_formula:
+                for i in range(num_val_cols):
+                    col_idx = 3 + i
+                    col_letter = get_column_letter(col_idx)
+                    formula = f"=SUM({col_letter}{block_start_row}:{col_letter}{row_idx - 1})"
+                    ws.cell(row=row_idx, column=col_idx).value = formula
+            if not is_soce:
+                if is_total:
+                    block_start_row = None  # next block will set on first component
+                elif block_start_row is None:
+                    block_start_row = row_idx
 
             # Styling for the just-added data row
-            is_total = raw_label.strip().lower().startswith("total ") or "balance at" in raw_label.strip().lower()
             depth = len(parts)
 
             # Line item cell
@@ -502,11 +616,11 @@ def build_mappings_xlsx(
                 section_path = " > ".join(str(x) for x in section_path)
             ws_mappings.append(
                 [
-                    section_path or "",
-                    (m.get("raw_label") or "")[:500],
-                    m.get("canonical_key", "UNMAPPED"),
-                    m.get("confidence", ""),
-                    (m.get("reason") or "")[:300],
+                    _sanitize_for_xlsx(section_path or ""),
+                    _sanitize_for_xlsx((m.get("raw_label") or "")[:500]),
+                    _sanitize_for_xlsx(m.get("canonical_key", "UNMAPPED")),
+                    _sanitize_for_xlsx(m.get("confidence", "")),
+                    _sanitize_for_xlsx((m.get("reason") or "")[:300]),
                 ]
             )
 

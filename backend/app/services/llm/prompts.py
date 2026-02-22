@@ -41,7 +41,25 @@ def build_scale_extraction_prompt(region_id: str, text: str) -> str:
 
 CANONICAL_MAPPING_SYSTEM = GLOBAL_INSTRUCTION + """
 
-Your task: map each raw line label to a canonical_key (snake_case). Use standard financial statement line names (e.g. trade_receivables, revenue, total_assets).
+Your task: map each raw line label to a canonical_key (snake_case). Use standard financial statement line names.
+IMPORTANT: Prefer mapping to a canonical key when the meaning is clear. Only use UNMAPPED when truly uncertain.
+
+Examples (SFP): property_plant_and_equipment, intangible_assets, investment_properties, right_of_use_assets,
+  trade_and_other_receivables, inventories, cash_and_cash_equivalents, restricted_cash, deferred_income_tax_assets,
+  total_assets, non_current_assets, current_assets, total_equity, non_controlling_interest, stated_capital,
+  treasury_shares, reserves, total_liabilities, lease_liabilities, borrowings, deferred_income_tax_liabilities,
+  trade_and_other_payables, contract_liabilities, employee_benefit_provisions, current_income_tax_liabilities.
+
+Examples (SCI): revenue, cost_of_sales, gross_profit, operating_profit, finance_costs, profit_before_tax,
+  income_tax_expense, profit_for_the_year, depreciation_and_amortisation, employee_benefits, other_operating_expenses,
+  total_comprehensive_income, basic_earnings_per_share, diluted_earnings_per_share.
+
+Examples (CF): cash_flows_from_operating_activities, cash_generated_from_operations, interest_received, interest_paid,
+  dividends_received, dividends_paid, income_tax_paid, net_movement_in_cash, cash_at_beginning, cash_at_end.
+
+Examples (SoCE): balance_at_date, total_comprehensive_income, profit_loss_for_the_year, dividends_distributed,
+  share_based_payments, purchase_of_treasury_shares, disposal_of_treasury_shares, foreign_currency_translation_differences.
+
 If you are not confident (e.g. confidence < 0.80), set canonical_key="UNMAPPED".
 Output schema: {"mappings": [{"statement_type": "...", "section_path": [], "raw_label": "...", "canonical_key": "...", "confidence": 0.0, "reason": "...", "evidence_spans": []}]}
 Allowed statement_type: SFP | SCI | IS | CF | SOCE | NOTES | OTHER"""
@@ -83,22 +101,157 @@ def build_risk_snippet_prompt(text: str) -> str:
 STATEMENT_TABLE_PARSER_SYSTEM = GLOBAL_INSTRUCTION + """
 
 Your task: parse a financial statement TABLE from the given raw text (extracted from a PDF).
-- Identify the COLUMN HEADERS (periods/years or column names, e.g. "2025", "2024", or "52 weeks 2025 Rm", "Restated* 52 weeks 2024 Rm", or "Total equity", "NCI" for Statement of Changes in Equity).
-- Extract each DATA ROW in the EXACT order it appears in the document, top to bottom. Do NOT reorder, group, or sort. Preserve the document sequence.
-- For hierarchical statements (e.g. Statement of Comprehensive Income): use section_path to capture parent sections. E.g. a line under "Other comprehensive loss, net of income tax" → section_path: ["Other comprehensive loss, net of income tax"]. A line under "Items that may subsequently be reclassified to profit or loss" → section_path: ["Other comprehensive loss, net of income tax", "Items that may subsequently be reclassified to profit or loss"].
-- Include section headers that have amounts (e.g. "Gross profit", "Trading profit", "Operating profit", "Other comprehensive loss, net of income tax") as line items. Include ALL line items with at least one numeric amount.
-- Use raw_label exactly as printed (preserve spelling, punctuation). If a row has a note number in the Notes column, set note_ref to that number.
-- For Statement of Changes in Equity (multi-column layout), period_labels may be composite (e.g. "2025 Total equity", "2025 NCI") and values_json must have one entry per such column.
-- EXCLUDE: page titles only, narrative paragraphs, footnotes, "see note X" without amounts, and prose.
-- Output schema: {"statement_type": "SFP"|"SCI"|"IS"|"CF"|"SOCE"|null, "period_labels": ["2025", "2024"], "lines": [{"raw_label": "...", "values_json": {"2025": 123, "2024": 456}, "note_ref": "16"|null, "section_path": null|["Parent section", "Subsection"]}], "warnings": []}
-Return valid JSON only. Do not infer or correct numbers; use exactly what appears in the text."""
+Different companies have different column layouts. YOU must infer the best structure from the headers.
+
+TABLE SCOPE:
+- table_scope: GROUP | COMPANY | MIXED | UNKNOWN. Use when the whole table is "Consolidated" (GROUP) or "Company" (COMPANY); MIXED when columns span both.
+- parse_confidence: HIGH | MED | LOW. Use for fallback/UI risk signaling.
+
+COLUMN INFERENCE (required):
+- columns_normalized: id, label, entity_scope, column_role (VALUE | NOTE_REF | OTHER), is_note_col.
+- entity_scope: GROUP | COMPANY | NCI | PARENT | TOTAL | UNKNOWN.
+- column_role: VALUE for value columns, NOTE_REF for Notes column, OTHER for % change / Restated etc.
+- period_end: ONLY when explicitly in the document (e.g. "year ended 29 June 2025"). Do NOT invent dates.
+- period_end_source: "explicit" only when date is clearly stated; otherwise "inferred" or "none". If not explicit, set period_end=null, use year+order.
+- year (e.g. 2025) when inferrable.
+- Include period_labels as ordered display labels.
+
+RAW VALUES (verbatim):
+- raw_value_strings: map column id to EXACT string as shown (" 14 951 ", " (5 115) ", " — "). null for blank/dash.
+- Do NOT convert to numbers.
+
+STRUCTURE:
+- section_path for hierarchy. row_role: line_item | subtotal | total | heading.
+- note_ref for Notes column value.
+- scale, scale_evidence from header (Rm, R'000, in millions). scale_source: "table_header" when from this table.
+- EXCLUDE: page titles, narrative, footnotes without amounts.
+
+Output schema: {
+  "statement_type": "SFP"|"SCI"|"IS"|"CF"|"SOCE"|null,
+  "table_scope": "GROUP"|"COMPANY"|"MIXED"|"UNKNOWN",
+  "parse_confidence": "HIGH"|"MED"|"LOW",
+  "period_labels": ["2025","2024"],
+  "columns_normalized": [{"id":"...","label":"...","entity_scope":"GROUP","column_role":"VALUE","period_end":null,"period_end_source":"none","year":2025,"is_note_col":false,"order":0},...],
+  "lines": [{"raw_label":"...","raw_value_strings":{"col_2025_group":" 14 951 ","col_2024_group":" 12 818 "},"note_ref":null,"section_path":[],"row_role":"line_item"}],
+  "scale":"million"|"thousand"|"billion"|"units"|"unknown"|null,
+  "scale_evidence":"Rm"|null,
+  "scale_source":"table_header"|null,
+  "warnings":[]
+}
+Return valid JSON only. For SOCE: use column id = {canonical_key}_{period} e.g. total_equity_2024, retained_earnings_2025."""
+
+
+SOCE_COLUMN_INSTRUCTIONS = """
+
+For STATEMENT OF CHANGES IN EQUITY (SOCE) only: The table has equity movements as rows and equity components as columns, repeated per period. Each value column must map to a CANONICAL equity component. Use column id = {canonical_key}_{period} e.g. total_equity_2024, stated_capital_2025.
+
+Canonical keys (use exactly): total_equity, non_controlling_interest, attributable_total, stated_capital, treasury_shares, other_reserves, retained_earnings.
+
+Map equivalent headings from any company:
+- Total equity, Equity total → total_equity
+- Non-controlling interest, NCI, Minority interest, Minority interests → non_controlling_interest
+- Attributable to owners, Owners of parent, Shareholders' equity total → attributable_total
+- Stated capital, Share capital, Issued capital, Called-up share capital → stated_capital
+- Treasury shares, Own shares → treasury_shares
+- Other reserves, Reserves, Capital reserves, Revaluation reserve → other_reserves
+- Retained earnings, Retained profit, Accumulated profit, Accumulated loss → retained_earnings
+
+Infer the semantic meaning regardless of exact wording. raw_value_strings: key by column id (e.g. total_equity_2024)."""
+
+
+SOCE_LAYOUT_VISION_SYSTEM = """You are analyzing a Statement of Changes in Equity (SoCE) table from a PDF page image.
+Your task: infer the TABLE STRUCTURE from the visual layout.
+
+Return JSON only with:
+- has_notes_column: true if there is a "Notes" column (small numbers like 19, 22) between the Line item column and value columns
+- notes_column_index: 0 if Notes is the first data column (right after Line item), -1 if no Notes column
+- column_order: list of canonical keys in left-to-right order. Use exactly: total_equity, non_controlling_interest, attributable_total, stated_capital, treasury_shares, other_reserves, retained_earnings
+- period_labels: year labels e.g. ["2024", "2025"] from headers
+- num_periods: usually 2 (current and prior year)
+- warnings: any uncertainties
+
+Map headers to canonical keys:
+- Total equity → total_equity
+- Non-controlling interest, NCI → non_controlling_interest
+- Attributable to owners (total) → attributable_total
+- Stated capital, Share capital → stated_capital
+- Treasury shares, Own shares → treasury_shares
+- Other reserves, Reserves → other_reserves
+- Retained earnings → retained_earnings
+
+The table repeats these columns for each period. Identify the Notes column (if any) by position: it typically contains small integers (19, 22, 17) that reference disclosures, not financial amounts."""
+
+
+SOCE_TABLE_EXTRACT_SYSTEM = """Extract the Statement of Changes in Equity table from this image.
+When PDF-extracted text is provided, use its EXACT wording for column headers and line item labels - do not paraphrase.
+Use null for empty/blank cells (never 0). Return structure and values from the image.
+
+Return JSON:
+{
+  "column_headers": ["Notes", "Total equity", "Non-controlling interest", "Total", "Stated capital", "Treasury shares", "Other reserves", "Retained earnings", ...],
+  "lines": [
+    {
+      "raw_label": "Balance at 2 July 2023",
+      "note_ref": null,
+      "values": [26278, 148, 26130, 7516, -2624, -7398, 28636],
+      "section_path": "Balance at 2 July 2023"
+    },
+    {
+      "raw_label": "Profit/(loss) for the year",
+      "note_ref": null,
+      "values": [6221, null, 6248, null, null, null, 6248],
+      "section_path": "Total comprehensive income"
+    }
+  ],
+  "scale": "Rm"
+}
+
+RULES:
+- column_headers: Read each column header from the image exactly as printed, left to right. If the table repeats columns for different years (e.g. 2024 and 2025), include each column with its header as shown. Do not add year suffixes we invented.
+- values: List of numbers or null in column order. Use null for empty/blank cells - NEVER use 0 for empty. Only use a number when the cell actually contains one. Parentheses = negative.
+- raw_label: Line item text exactly as shown.
+- note_ref: Small integer in Notes column (e.g. 2, 16) or null.
+- section_path: Section header for that row (e.g. "Balance at...", "Total comprehensive income") or null.
+- Extract every data row in order. Preserve the exact structure from the image."""
+
+
+def build_soce_table_extract_prompt(pdf_text: str = "") -> str:
+    """Prompt for full SoCE table extraction. Pass PDF text so LLM uses exact wording."""
+    base = (
+        "Extract this table from the image. Use the column structure and layout from the image. "
+        "For column headers and line item labels: use the EXACT wording from the PDF text below - do not paraphrase or reword. "
+        "For values: use numbers when the cell contains one, null when the cell is empty or blank (never use 0 for empty). "
+        "Return valid JSON only."
+    )
+    if pdf_text:
+        base += (
+            "\n\nPDF-extracted text (use this exact wording for headers and labels):\n---\n"
+            + (pdf_text[:4000] or "(none)")
+            + "\n---"
+        )
+    return base
+
+
+def build_soce_layout_prompt(text_preview: str) -> str:
+    """Text prompt to accompany SoCE page image for layout analysis."""
+    return (
+        "Analyze this Statement of Changes in Equity page image. "
+        "Infer the column structure: which column is Notes (if any), and the order of equity columns (Total equity, NCI, Stated capital, etc.) per period. "
+        "Extracted text preview (may help with headers):\n\n" + (text_preview[:2000] or "(none)")
+        + "\n\nReturn JSON only."
+    )
 
 
 def build_statement_table_parser_prompt(region_id: str, text: str, statement_type_hint: str | None) -> str:
     hint = f" (hint: this region was classified as {statement_type_hint})" if statement_type_hint else ""
+    soce_block = SOCE_COLUMN_INSTRUCTIONS if statement_type_hint == "SOCE" else ""
     return (
         f"Parse the financial statement table from this region (region_id={region_id}){hint}. "
-        "Return lines in the EXACT order they appear in the text (top to bottom). Preserve hierarchy with section_path. "
-        "Return JSON with period_labels and lines (raw_label + values_json per column). Return JSON only.\n\n---\n"
+        "INFER columns_normalized from the headers (id, label, entity_scope, period_end, year). "
+        "Different companies have different layouts—adapt to what you see. "
+        + soce_block
+        + " "
+        "raw_value_strings: MUST key by the SAME column id as in columns_normalized (or by period label like 2025/2024). Use VERBATIM value text. "
+        "Set row_role, section_path. Identify scale (Rm, R'000). Return JSON only.\n\n---\n"
         + text[:12000]
     )

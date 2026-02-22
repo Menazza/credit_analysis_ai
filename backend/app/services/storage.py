@@ -73,6 +73,11 @@ def generate_page_asset_key(tenant_id: str, doc_version_id: str, page_no: int, s
     return f"tenants/{tenant_id}/doc_versions/{doc_version_id}/pages/{page_no}.{suffix}"
 
 
+def generate_soce_page_key(tenant_id: str, doc_version_id: str, page_no: int) -> str:
+    """S3 key for SoCE page image (for LLM layout analysis)."""
+    return f"tenants/{tenant_id}/doc_versions/{doc_version_id}/soce_pages/{page_no}.png"
+
+
 def _parse_storage_url(storage_url: str) -> tuple[str, str]:
     """Return (bucket, key) from a storage URL (AWS virtual-hosted or custom endpoint)."""
     from urllib.parse import urlparse
@@ -102,3 +107,17 @@ def download_file_from_url(storage_url: str) -> bytes:
         raise ValueError(f"Cannot determine S3 key from URL: {storage_url}")
     resp = client.get_object(Bucket=bucket, Key=key)
     return resp["Body"].read()
+
+
+def upload_json_to_storage(key: str, json_content: str) -> str:
+    """Upload JSON string to S3 and return the URL."""
+    return upload_bytes(key, json_content.encode("utf-8"), content_type="application/json")
+
+
+def download_json_from_storage(key: str) -> str:
+    """Download JSON content from S3."""
+    ensure_bucket()
+    client = get_s3_client()
+    bucket = get_settings().object_storage_bucket
+    resp = client.get_object(Bucket=bucket, Key=key)
+    return resp["Body"].read().decode("utf-8")

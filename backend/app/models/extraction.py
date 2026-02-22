@@ -5,6 +5,12 @@ from sqlalchemy.orm import relationship
 from app.db.base_class import BaseModel
 from app.db.session import Base
 
+try:
+    from pgvector.sqlalchemy import Vector
+    _HAS_PGVECTOR = True
+except ImportError:
+    _HAS_PGVECTOR = False
+
 
 class PresentationContext(Base, BaseModel):
     __tablename__ = "presentation_contexts"
@@ -62,3 +68,25 @@ class NoteExtraction(Base, BaseModel):
     presentation_context_id = Column(UUID(as_uuid=True), ForeignKey("presentation_contexts.id"), nullable=True)
     evidence_json = Column(JSONB, default=dict)
     document_version = relationship("DocumentVersion", back_populates="note_extractions")
+
+
+class NoteChunk(Base, BaseModel):
+    """Chunk of note text for on-demand retrieval. Stable IDs: note_id (GROUP:21), chunk_id (GROUP:21.1)."""
+    __tablename__ = "note_chunks"
+    document_version_id = Column(UUID(as_uuid=True), ForeignKey("document_versions.id"), nullable=False)
+    scope = Column(String(20), nullable=False)  # GROUP, COMPANY
+    note_id = Column(String(50), nullable=False)  # e.g. GROUP:21
+    chunk_id = Column(String(80), nullable=False)  # e.g. GROUP:21.1
+    title = Column(String(500), nullable=True)
+    page_start = Column(Integer, nullable=True)
+    page_end = Column(Integer, nullable=True)
+    text = Column(String, nullable=True)  # Text content
+    tables_json = Column(JSONB, default=list)
+    tokens_approx = Column(Integer, nullable=True)
+    keywords_json = Column(JSONB, default=list)
+    document_version = relationship("DocumentVersion", back_populates="note_chunks")
+
+
+# Add embedding column when pgvector is available (migration creates the DB column)
+if _HAS_PGVECTOR:
+    NoteChunk.__table__.append_column(Column("embedding", Vector(1536), nullable=True))
