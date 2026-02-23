@@ -3,7 +3,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_settings
-from app.api.routes import auth, companies, documents, portfolios, reviews, export, monitoring, exceptions
+from app.api.routes import auth, companies, documents, portfolios, reviews, export, monitoring, exceptions, mappings
 from app.db.session import engine
 from app.models import Base
 
@@ -38,6 +38,7 @@ app.include_router(portfolios.router, prefix="/api")
 app.include_router(reviews.router, prefix="/api")
 app.include_router(export.router, prefix="/api")
 app.include_router(monitoring.router, prefix="/api")
+app.include_router(mappings.router, prefix="/api")
 app.include_router(exceptions.router, prefix="/api")
 
 

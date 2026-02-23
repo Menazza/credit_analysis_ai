@@ -1,0 +1,646 @@
+{
+  "audit": {
+    "periods": [
+      "2025-06-30",
+      "2024-06-30"
+    ],
+    "fs_version": "",
+    "mapping_version": ""
+  },
+  "section_blocks": {
+    "business_risk": {
+      "section_name": "Business Risk Assessment",
+      "key_metrics": {
+        "revenue": 252701.0,
+        "revenue_growth_pct": 8.9,
+        "ebitda_growth_pct": 19.2,
+        "ebitda_margin_pct": 2.7,
+        "margin_delta_bps": 24.0
+      },
+      "score": 57.2,
+      "section_rating": "Adequate",
+      "risk_flags": [],
+      "evidence_notes": [
+        "Note 2: Operating segments",
+        "Note 26: Revenue",
+        "Note 43: Risk management"
+      ],
+      "llm_commentary": "Business risk assessment: Adequate (score 57.2/100). Revenue growth 8.9% YoY.",
+      "period": "2025-06-30"
+    },
+    "financial_performance": {
+      "section_name": "Financial Performance Analysis",
+      "key_metrics": {
+        "revenue": 252701.0,
+        "revenue_growth_pct": 8.9,
+        "ebitda_growth_pct": 19.2,
+        "pat_growth_pct": 21.9,
+        "ebitda_margin_pct": 2.7,
+        "operating_profit": 14943.0,
+        "profit_after_tax": 7583.0,
+        "cfo_to_ebitda": 1.58,
+        "fcf_conversion": 2.5
+      },
+      "score": 62.2,
+      "section_rating": "Adequate",
+      "risk_flags": [],
+      "evidence_notes": [
+        "Note 27: Depreciation",
+        "Note 30: Operating expenses",
+        "Note 33: Finance costs",
+        "Note 34: Tax"
+      ],
+      "llm_commentary": "Financial performance: Adequate. EBITDA margin 2.7%.",
+      "by_period": {
+        "2025-06-30": {
+          "revenue": 252701.0,
+          "ebitda": 6931.0
+        },
+        "2024-06-30": {
+          "revenue": 232088.0,
+          "ebitda": 5817.0
+        }
+      },
+      "period": "2025-06-30"
+    },
+    "liquidity": {
+      "section_name": "Cash Flow & Liquidity",
+      "key_metrics": {
+        "net_cfo": 10984.0,
+        "capex": -6320.0,
+        "fcf": 17304.0,
+        "current_ratio": 0.89,
+        "quick_ratio": 0.23,
+        "cash": 9946.0,
+        "st_debt": 44979.0,
+        "st_debt_to_cash": 4.52,
+        "liquidity_runway_months": null,
+        "undrawn_facilities": null,
+        "lease_adjusted_liquidity": -33170.0
+      },
+      "score": 58.0,
+      "section_rating": "Adequate",
+      "risk_flags": [
+        "ST debt/cash elevated"
+      ],
+      "evidence_notes": [
+        "Note 38: Cash flows",
+        "Note 21: Borrowings",
+        "Note 20: Lease liabilities",
+        "Note 48: Going concern"
+      ],
+      "llm_commentary": "Liquidity: Adequate. Current ratio 0.89x. Cash 9,946.",
+      "by_period": {
+        "2025-06-30": {
+          "current_ratio": 0.89,
+          "quick_ratio": 0.23,
+          "st_debt_to_cash": 4.52,
+          "liquidity_runway_months": null,
+          "undrawn_facilities": null,
+          "lease_adjusted_liquidity": -33170.0,
+          "cash": 9946.0,
+          "st_debt": 44979.0
+        },
+        "2024-06-30": {
+          "current_ratio": 1.02,
+          "quick_ratio": 0.31,
+          "st_debt_to_cash": 3.38,
+          "liquidity_runway_months": null,
+          "undrawn_facilities": null,
+          "lease_adjusted_liquidity": -24970.0,
+          "cash": 11732.0,
+          "st_debt": 39597.0
+        }
+      },
+      "period": "2025-06-30"
+    },
+    "leverage": {
+      "section_name": "Leverage & Capital Structure",
+      "key_metrics": {
+        "net_debt_ex_leases": -8083.0,
+        "net_debt_incl_leases": 35033.0,
+        "gross_debt": 44979.0,
+        "debt_to_capital": 0.8568,
+        "net_debt_to_ebitda_ex_leases": -1.17,
+        "net_debt_to_ebitda_incl_leases": 5.05,
+        "ebitda_to_interest": 1.34,
+        "fixed_charge_cover": 0.73,
+        "lease_adjusted_interest_cover": 0.73
+      },
+      "score": 22.5,
+      "section_rating": "Weak",
+      "risk_flags": [
+        "High leverage (ND/EBITDA > 4x)",
+        "Interest cover below 2x"
+      ],
+      "evidence_notes": [
+        "Note 21: Borrowings",
+        "Note 20: Lease liabilities",
+        "Note 39: Contingent liabilities"
+      ],
+      "llm_commentary": "Leverage: Weak. ND/EBITDA 5.05x. Interest cover 1.34x.",
+      "by_period": {
+        "2025-06-30": {
+          "net_debt_ex_leases": -8083.0,
+          "net_debt_incl_leases": 35033.0,
+          "gross_debt": 44979.0,
+          "debt_to_capital": 0.8568,
+          "net_debt_to_ebitda_ex_leases": -1.17,
+          "net_debt_to_ebitda_incl_leases": 5.05,
+          "ebitda_to_interest": 1.34,
+          "fixed_charge_cover": 0.73,
+          "lease_adjusted_interest_cover": 0.73
+        },
+        "2024-06-30": {
+          "net_debt_ex_leases": -8837.0,
+          "net_debt_incl_leases": 27865.0,
+          "gross_debt": 39597.0,
+          "debt_to_capital": 0.8405,
+          "net_debt_to_ebitda_ex_leases": -1.52,
+          "net_debt_to_ebitda_incl_leases": 4.79,
+          "ebitda_to_interest": 1.35,
+          "fixed_charge_cover": 0.73,
+          "lease_adjusted_interest_cover": 0.73
+        }
+      },
+      "period": "2025-06-30"
+    },
+    "accounting_quality": {
+      "section_name": "Accounting & Disclosure Quality",
+      "key_metrics": {
+        "accounting_risk_areas_count": 0,
+        "risk_items_count": 0
+      },
+      "score": 80.0,
+      "section_rating": "Strong",
+      "risk_flags": [],
+      "evidence_notes": [
+        "Note 8: Impairment",
+        "Note 14: Deferred tax",
+        "Note 43: Financial instruments",
+        "Note 1: Significant judgement"
+      ],
+      "llm_commentary": "Accounting quality: Strong. 0 accounting risk areas identified."
+    },
+    "stress": {
+      "section_name": "Stress Testing & Downside Analysis",
+      "key_metrics": {
+        "scenarios": {
+          "A_revenue_minus_10pct": {
+            "period": "2025-06-30",
+            "revenue_stressed": 227430.9,
+            "ebitda_stressed": 6237.9,
+            "interest_cover_stressed": 2.63,
+            "net_debt_to_ebitda_stressed": 5.62
+          },
+          "B_interest_plus_200bps": {
+            "period": "2025-06-30",
+            "extra_interest": 37.26,
+            "interest_cover_stressed": 2.9
+          },
+          "C_working_capital_shock": {
+            "period": "2025-06-30",
+            "wc_shock_amount": 25270.1,
+            "cash_after_shock": -15324.1,
+            "st_debt_to_cash_stressed": null
+          }
+        }
+      },
+      "score": 35.0,
+      "section_rating": "Weak",
+      "risk_flags": [
+        "A_revenue_minus_10pct: ND/EBITDA above 3x",
+        "C_working_capital_shock: Cash negative after shock"
+      ],
+      "evidence_notes": [],
+      "llm_commentary": "Stress resilience: Weak. Risks: A_revenue_minus_10pct: ND/EBITDA above 3x; C_working_capital_shock: Cash negative after shock",
+      "by_period": {
+        "A_revenue_minus_10pct": {
+          "period": "2025-06-30",
+          "revenue_stressed": 227430.9,
+          "ebitda_stressed": 6237.9,
+          "interest_cover_stressed": 2.63,
+          "net_debt_to_ebitda_stressed": 5.62
+        },
+        "B_interest_plus_200bps": {
+          "period": "2025-06-30",
+          "extra_interest": 37.26,
+          "interest_cover_stressed": 2.9
+        },
+        "C_working_capital_shock": {
+          "period": "2025-06-30",
+          "wc_shock_amount": 25270.1,
+          "cash_after_shock": -15324.1,
+          "st_debt_to_cash_stressed": null
+        }
+      },
+      "period": "2025-06-30"
+    },
+    "covenants": {
+      "section_name": "Covenants & Headroom",
+      "key_metrics": {
+        "covenant_leverage_max": 2.75,
+        "covenant_interest_cover_min": 3.5,
+        "current_nd_ebitda": 5.05,
+        "current_interest_cover": 1.34,
+        "undrawn_facilities": null
+      },
+      "score": 25,
+      "section_rating": "Weak",
+      "risk_flags": [
+        "ND/EBITDA at or above covenant limit",
+        "Interest cover below covenant minimum"
+      ],
+      "evidence_notes": [
+        "Note 48: Going concern",
+        "Note 43.4.3: Covenant terms"
+      ],
+      "llm_commentary": "Covenant headroom: Weak. See Note 48 and 43.4.3."
+    }
+  },
+  "aggregation": {
+    "aggregate_score": 54.0,
+    "rating_grade": "BBB+",
+    "section_breakdown": {
+      "business_risk": {
+        "score": 57.2,
+        "rating": "Adequate",
+        "weight": 25
+      },
+      "financial_performance": {
+        "score": 62.2,
+        "rating": "Adequate",
+        "weight": 25
+      },
+      "liquidity": {
+        "score": 58.0,
+        "rating": "Adequate",
+        "weight": 20
+      },
+      "leverage": {
+        "score": 22.5,
+        "rating": "Weak",
+        "weight": 20
+      },
+      "accounting_quality": {
+        "score": 80.0,
+        "rating": "Strong",
+        "weight": 10
+      }
+    },
+    "section_blocks": {
+      "business_risk": {
+        "section_name": "Business Risk Assessment",
+        "key_metrics": {
+          "revenue": 252701.0,
+          "revenue_growth_pct": 8.9,
+          "ebitda_growth_pct": 19.2,
+          "ebitda_margin_pct": 2.7,
+          "margin_delta_bps": 24.0
+        },
+        "score": 57.2,
+        "section_rating": "Adequate",
+        "risk_flags": [],
+        "evidence_notes": [
+          "Note 2: Operating segments",
+          "Note 26: Revenue",
+          "Note 43: Risk management"
+        ],
+        "llm_commentary": "Business risk assessment: Adequate (score 57.2/100). Revenue growth 8.9% YoY.",
+        "period": "2025-06-30"
+      },
+      "financial_performance": {
+        "section_name": "Financial Performance Analysis",
+        "key_metrics": {
+          "revenue": 252701.0,
+          "revenue_growth_pct": 8.9,
+          "ebitda_growth_pct": 19.2,
+          "pat_growth_pct": 21.9,
+          "ebitda_margin_pct": 2.7,
+          "operating_profit": 14943.0,
+          "profit_after_tax": 7583.0,
+          "cfo_to_ebitda": 1.58,
+          "fcf_conversion": 2.5
+        },
+        "score": 62.2,
+        "section_rating": "Adequate",
+        "risk_flags": [],
+        "evidence_notes": [
+          "Note 27: Depreciation",
+          "Note 30: Operating expenses",
+          "Note 33: Finance costs",
+          "Note 34: Tax"
+        ],
+        "llm_commentary": "Financial performance: Adequate. EBITDA margin 2.7%.",
+        "by_period": {
+          "2025-06-30": {
+            "revenue": 252701.0,
+            "ebitda": 6931.0
+          },
+          "2024-06-30": {
+            "revenue": 232088.0,
+            "ebitda": 5817.0
+          }
+        },
+        "period": "2025-06-30"
+      },
+      "liquidity": {
+        "section_name": "Cash Flow & Liquidity",
+        "key_metrics": {
+          "net_cfo": 10984.0,
+          "capex": -6320.0,
+          "fcf": 17304.0,
+          "current_ratio": 0.89,
+          "quick_ratio": 0.23,
+          "cash": 9946.0,
+          "st_debt": 44979.0,
+          "st_debt_to_cash": 4.52,
+          "liquidity_runway_months": null,
+          "undrawn_facilities": null,
+          "lease_adjusted_liquidity": -33170.0
+        },
+        "score": 58.0,
+        "section_rating": "Adequate",
+        "risk_flags": [
+          "ST debt/cash elevated"
+        ],
+        "evidence_notes": [
+          "Note 38: Cash flows",
+          "Note 21: Borrowings",
+          "Note 20: Lease liabilities",
+          "Note 48: Going concern"
+        ],
+        "llm_commentary": "Liquidity: Adequate. Current ratio 0.89x. Cash 9,946.",
+        "by_period": {
+          "2025-06-30": {
+            "current_ratio": 0.89,
+            "quick_ratio": 0.23,
+            "st_debt_to_cash": 4.52,
+            "liquidity_runway_months": null,
+            "undrawn_facilities": null,
+            "lease_adjusted_liquidity": -33170.0,
+            "cash": 9946.0,
+            "st_debt": 44979.0
+          },
+          "2024-06-30": {
+            "current_ratio": 1.02,
+            "quick_ratio": 0.31,
+            "st_debt_to_cash": 3.38,
+            "liquidity_runway_months": null,
+            "undrawn_facilities": null,
+            "lease_adjusted_liquidity": -24970.0,
+            "cash": 11732.0,
+            "st_debt": 39597.0
+          }
+        },
+        "period": "2025-06-30"
+      },
+      "leverage": {
+        "section_name": "Leverage & Capital Structure",
+        "key_metrics": {
+          "net_debt_ex_leases": -8083.0,
+          "net_debt_incl_leases": 35033.0,
+          "gross_debt": 44979.0,
+          "debt_to_capital": 0.8568,
+          "net_debt_to_ebitda_ex_leases": -1.17,
+          "net_debt_to_ebitda_incl_leases": 5.05,
+          "ebitda_to_interest": 1.34,
+          "fixed_charge_cover": 0.73,
+          "lease_adjusted_interest_cover": 0.73
+        },
+        "score": 22.5,
+        "section_rating": "Weak",
+        "risk_flags": [
+          "High leverage (ND/EBITDA > 4x)",
+          "Interest cover below 2x"
+        ],
+        "evidence_notes": [
+          "Note 21: Borrowings",
+          "Note 20: Lease liabilities",
+          "Note 39: Contingent liabilities"
+        ],
+        "llm_commentary": "Leverage: Weak. ND/EBITDA 5.05x. Interest cover 1.34x.",
+        "by_period": {
+          "2025-06-30": {
+            "net_debt_ex_leases": -8083.0,
+            "net_debt_incl_leases": 35033.0,
+            "gross_debt": 44979.0,
+            "debt_to_capital": 0.8568,
+            "net_debt_to_ebitda_ex_leases": -1.17,
+            "net_debt_to_ebitda_incl_leases": 5.05,
+            "ebitda_to_interest": 1.34,
+            "fixed_charge_cover": 0.73,
+            "lease_adjusted_interest_cover": 0.73
+          },
+          "2024-06-30": {
+            "net_debt_ex_leases": -8837.0,
+            "net_debt_incl_leases": 27865.0,
+            "gross_debt": 39597.0,
+            "debt_to_capital": 0.8405,
+            "net_debt_to_ebitda_ex_leases": -1.52,
+            "net_debt_to_ebitda_incl_leases": 4.79,
+            "ebitda_to_interest": 1.35,
+            "fixed_charge_cover": 0.73,
+            "lease_adjusted_interest_cover": 0.73
+          }
+        },
+        "period": "2025-06-30"
+      },
+      "accounting_quality": {
+        "section_name": "Accounting & Disclosure Quality",
+        "key_metrics": {
+          "accounting_risk_areas_count": 0,
+          "risk_items_count": 0
+        },
+        "score": 80.0,
+        "section_rating": "Strong",
+        "risk_flags": [],
+        "evidence_notes": [
+          "Note 8: Impairment",
+          "Note 14: Deferred tax",
+          "Note 43: Financial instruments",
+          "Note 1: Significant judgement"
+        ],
+        "llm_commentary": "Accounting quality: Strong. 0 accounting risk areas identified."
+      },
+      "stress": {
+        "section_name": "Stress Testing & Downside Analysis",
+        "key_metrics": {
+          "scenarios": {
+            "A_revenue_minus_10pct": {
+              "period": "2025-06-30",
+              "revenue_stressed": 227430.9,
+              "ebitda_stressed": 6237.9,
+              "interest_cover_stressed": 2.63,
+              "net_debt_to_ebitda_stressed": 5.62
+            },
+            "B_interest_plus_200bps": {
+              "period": "2025-06-30",
+              "extra_interest": 37.26,
+              "interest_cover_stressed": 2.9
+            },
+            "C_working_capital_shock": {
+              "period": "2025-06-30",
+              "wc_shock_amount": 25270.1,
+              "cash_after_shock": -15324.1,
+              "st_debt_to_cash_stressed": null
+            }
+          }
+        },
+        "score": 35.0,
+        "section_rating": "Weak",
+        "risk_flags": [
+          "A_revenue_minus_10pct: ND/EBITDA above 3x",
+          "C_working_capital_shock: Cash negative after shock"
+        ],
+        "evidence_notes": [],
+        "llm_commentary": "Stress resilience: Weak. Risks: A_revenue_minus_10pct: ND/EBITDA above 3x; C_working_capital_shock: Cash negative after shock",
+        "by_period": {
+          "A_revenue_minus_10pct": {
+            "period": "2025-06-30",
+            "revenue_stressed": 227430.9,
+            "ebitda_stressed": 6237.9,
+            "interest_cover_stressed": 2.63,
+            "net_debt_to_ebitda_stressed": 5.62
+          },
+          "B_interest_plus_200bps": {
+            "period": "2025-06-30",
+            "extra_interest": 37.26,
+            "interest_cover_stressed": 2.9
+          },
+          "C_working_capital_shock": {
+            "period": "2025-06-30",
+            "wc_shock_amount": 25270.1,
+            "cash_after_shock": -15324.1,
+            "st_debt_to_cash_stressed": null
+          }
+        },
+        "period": "2025-06-30"
+      },
+      "covenants": {
+        "section_name": "Covenants & Headroom",
+        "key_metrics": {
+          "covenant_leverage_max": 2.75,
+          "covenant_interest_cover_min": 3.5,
+          "current_nd_ebitda": 5.05,
+          "current_interest_cover": 1.34,
+          "undrawn_facilities": null
+        },
+        "score": 25,
+        "section_rating": "Weak",
+        "risk_flags": [
+          "ND/EBITDA at or above covenant limit",
+          "Interest cover below covenant minimum"
+        ],
+        "evidence_notes": [
+          "Note 48: Going concern",
+          "Note 43.4.3: Covenant terms"
+        ],
+        "llm_commentary": "Covenant headroom: Weak. See Note 48 and 43.4.3."
+      }
+    }
+  },
+  "financial": {
+    "ebitda": {
+      "2025-06-30": 6931.0,
+      "2024-06-30": 5817.0
+    },
+    "net_debt_ex_leases": {
+      "2025-06-30": -8083.0,
+      "2024-06-30": -8837.0
+    },
+    "net_debt_incl_leases": {
+      "2025-06-30": 35033.0,
+      "2024-06-30": 27865.0
+    },
+    "interest_cover": {
+      "2025-06-30": 2.921407624633431,
+      "2024-06-30": 3.048880327474115
+    },
+    "net_debt_to_ebitda": {
+      "2025-06-30": 5.054537584764104,
+      "2024-06-30": 4.790269898573148
+    },
+    "ebitda_margin": {
+      "2025-06-30": 2.742767143778616,
+      "2024-06-30": 2.506376891523905
+    },
+    "current_ratio": {
+      "2025-06-30": 20.773078906652913,
+      "2024-06-30": 13.590741361959074
+    },
+    "fcf_conversion": {
+      "2025-06-30": 2.4966094358678403,
+      "2024-06-30": 3.3623861096785284
+    }
+  },
+  "facts_by_period": {
+    "2025-06-30": {
+      "property_plant_equipment": 22536.0,
+      "investment_property": 128.0,
+      "right_of_use_assets": 36090.0,
+      "intangible_assets": 5700.0,
+      "investments_and_associates": 2452.0,
+      "trade_receivables": 585.0,
+      "inventories": 29748.0,
+      "cash_and_cash_equivalents": 9946.0,
+      "total_assets": 124944.0,
+      "total_equity": 7516.0,
+      "lease_liabilities_current": 43116.0,
+      "trade_payables": 76.0,
+      "short_term_borrowings": 1863.0,
+      "total_liabilities": 94827.0,
+      "revenue": 252701.0,
+      "gross_profit": 61442.0,
+      "share_of_profit_associates": 250.0,
+      "depreciation_amortisation": -8012.0,
+      "operating_expenses": -22366.0,
+      "operating_profit": 14943.0,
+      "finance_income": 357.0,
+      "finance_costs": -5115.0,
+      "profit_before_tax": 10185.0,
+      "income_tax_expense": -2793.0,
+      "profit_after_tax": 7583.0,
+      "net_cfo": 10984.0,
+      "cash_generated_operations": 21890.0,
+      "interest_paid": -5166.0,
+      "dividends_paid": -3985.0,
+      "capex": -6320.0
+    },
+    "2024-06-30": {
+      "property_plant_equipment": 19672.0,
+      "investment_property": 617.0,
+      "right_of_use_assets": 30469.0,
+      "intangible_assets": 4695.0,
+      "investments_and_associates": 2478.0,
+      "trade_receivables": 416.0,
+      "inventories": 28366.0,
+      "cash_and_cash_equivalents": 11732.0,
+      "total_assets": 112328.0,
+      "total_equity": 7516.0,
+      "lease_liabilities_current": 36702.0,
+      "trade_payables": 86.0,
+      "short_term_borrowings": 2895.0,
+      "total_liabilities": 84604.0,
+      "revenue": 232088.0,
+      "gross_profit": 55539.0,
+      "share_of_profit_associates": 268.0,
+      "depreciation_amortisation": -6845.0,
+      "operating_expenses": -21916.0,
+      "operating_profit": 12662.0,
+      "finance_income": 517.0,
+      "finance_costs": -4153.0,
+      "profit_before_tax": 9026.0,
+      "income_tax_expense": -2805.0,
+      "profit_after_tax": 6221.0,
+      "net_cfo": 13841.0,
+      "cash_generated_operations": 23628.0,
+      "interest_paid": -4305.0,
+      "dividends_paid": -3743.0,
+      "capex": -5718.0
+    }
+  },
+  "rating": {
+    "rating_grade": "BBB+"
+  }
+}

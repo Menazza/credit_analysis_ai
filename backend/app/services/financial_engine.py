@@ -45,9 +45,9 @@ def compute_net_debt_incl_leases(facts: dict[tuple[str, date], float], period_en
 def compute_interest_cover(facts: dict[tuple[str, date], float], period_end: date) -> float | None:
     ebit = get_fact(facts, "operating_profit", period_end)
     finance_costs = get_fact(facts, "finance_costs", period_end)
-    if ebit is None or finance_costs is None or finance_costs == 0:
-        return None
-    return ebit / finance_costs
+    if ebit is None or finance_costs is None or finance_costs >= 0:
+        return None  # Net finance income: no meaningful interest cover
+    return ebit / abs(finance_costs)
 
 
 def compute_net_debt_to_ebitda(
@@ -63,9 +63,12 @@ def compute_net_debt_to_ebitda(
 def compute_ebitda_margin(facts: dict[tuple[str, date], float], period_end: date) -> float | None:
     ebitda = compute_ebitda(facts, period_end)
     revenue = get_fact(facts, "revenue", period_end)
-    if ebitda is None or revenue is None or revenue == 0:
+    if ebitda is None or revenue is None or revenue <= 0:
         return None
-    return 100.0 * (ebitda / revenue)
+    margin = 100.0 * (ebitda / revenue)
+    if margin > 100.0 or margin < 0:
+        return None  # Sanity check: impossible margin
+    return margin
 
 
 def compute_current_ratio(facts: dict[tuple[str, date], float], period_end: date) -> float | None:
@@ -78,10 +81,13 @@ def compute_current_ratio(facts: dict[tuple[str, date], float], period_end: date
     st_borr = get_fact(facts, "short_term_borrowings", period_end) or 0
     curr_portion = get_fact(facts, "current_portion_long_term_debt", period_end) or 0
     curr_liab = payables + st_borr + curr_portion
-    if curr_liab == 0:
+    if curr_liab <= 0:
         return None
     curr_assets = cash + receivables + other_rcv + inventory
-    return curr_assets / curr_liab
+    cr = curr_assets / curr_liab
+    if cr < 0:
+        return None  # Sanity: negative current ratio
+    return cr
 
 
 def compute_fcf_conversion(facts: dict[tuple[str, date], float], period_end: date) -> float | None:

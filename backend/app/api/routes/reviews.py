@@ -175,7 +175,7 @@ async def run_credit_review_pipeline(
     - enqueueing deterministic engines (financials, rating, pack generation)
     """
     from sqlalchemy import desc
-    from app.worker.tasks import run_financial_engine, run_rating, generate_pack
+    from app.worker.tasks import run_full_credit_analysis
 
     result = await db.execute(
         select(CreditReview, Engagement)
@@ -205,11 +205,7 @@ async def run_credit_review_pipeline(
     await db.flush()
 
     version_id_str = str(version.id)
-    # Trigger Celery workers (deterministic engines, no side effects on request thread)
-    run_financial_engine.delay(version_id_str)
-    run_rating.delay(version_id_str)
-    # Optionally generate export pack (DOCX/XLSX/PPTX) asynchronously
-    generate_pack.delay(version_id_str, ["DOCX"])
+    run_full_credit_analysis.delay(version_id_str, ["DOCX", "XLSX", "PPTX"])
 
     return CreditReviewRunResponse(
         review_id=str(review.id),

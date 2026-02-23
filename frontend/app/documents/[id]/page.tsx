@@ -5,18 +5,6 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { api } from "@/lib/api";
 
-type MappingRow = {
-  raw_label?: string;
-  canonical_key?: string;
-  confidence?: number;
-};
-
-type NoteRow = {
-  note_number?: string;
-  title?: string;
-  note_type?: string;
-};
-
 type DocumentVersionSummary = {
   id: string;
   document_id: string;
@@ -25,30 +13,15 @@ type DocumentVersionSummary = {
   created_at: string | null;
   doc_type: string;
   original_filename: string;
-  presentation_scale: Record<string, unknown> | null;
-  canonical_mappings: { mappings?: MappingRow[] } | null;
-  note_classifications: { notes?: NoteRow[] } | null;
+  engagement_id: string | null;
 };
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
-async function downloadLlmInput(versionId: string) {
-  const data = await api<unknown>(`/api/documents/versions/${versionId}/llm-input`);
-  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `llm-input-${versionId}.json`;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  URL.revokeObjectURL(url);
-}
-
-async function downloadStatements(versionId: string, format: "csv" | "xlsx") {
+async function downloadExtractedFiles(versionId: string, filename: string) {
   const token = typeof window !== "undefined" ? localStorage.getItem("access_token") : null;
   const res = await fetch(
-    `${API_BASE}/api/documents/versions/${versionId}/export?format=${format}`,
+    `${API_BASE}/api/documents/versions/${versionId}/download-extracted`,
     { headers: token ? { Authorization: `Bearer ${token}` } : {} }
   );
   if (!res.ok) {
@@ -59,7 +32,7 @@ async function downloadStatements(versionId: string, format: "csv" | "xlsx") {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `statements-${versionId}.${format}`;
+  a.download = `extracted_${filename.replace(".pdf", "")}.zip`;
   document.body.appendChild(a);
   a.click();
   a.remove();
@@ -72,6 +45,7 @@ export default function DocumentVersionDetailPage() {
   const [summary, setSummary] = useState<DocumentVersionSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [downloading, setDownloading] = useState(false);
 
   useEffect(() => {
     const token = typeof window !== "undefined" ? localStorage.getItem("access_token") : null;
@@ -89,137 +63,75 @@ export default function DocumentVersionDetailPage() {
       .finally(() => setLoading(false));
   }, [id]);
 
-  if (loading) return <div className="text-slate-400">Loading document analysis…</div>;
-  if (error) return <div className="text-amber-400">{error}</div>;
-  if (!summary) return <div className="text-slate-400">Document version not found.</div>;
+  const handleDownload = async () => {
+    if (!summary) return;
+    setDownloading(true);
+    try {
+      await downloadExtractedFiles(id, summary.original_filename);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Download failed");
+    } finally {
+      setDownloading(false);
+    }
+  };
 
-  const mappings = summary.canonical_mappings?.mappings ?? [];
-  const notes = summary.note_classifications?.notes ?? [];
+  if (loading) return <div className="text-slate-400 p-8">Loading document analysis…</div>;
+  if (error) return <div className="text-amber-400 p-8">{error}</div>;
+  if (!summary) return <div className="text-slate-400 p-8">Document version not found.</div>;
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between gap-4">
-        <h1 className="text-2xl font-bold text-white">Document analysis</h1>
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            className="btn-secondary"
-            onClick={() => downloadStatements(id, "csv")}
-          >
-            Download CSV
-          </button>
-          <button
-            type="button"
-            className="btn-secondary"
-            onClick={() => downloadStatements(id, "xlsx")}
-          >
-            Download Excel
-          </button>
-          <button
-            type="button"
-            className="btn-secondary"
-            onClick={() => downloadLlmInput(id)}
-          >
-            Download raw LLM input
-          </button>
-          <Link href="/companies" className="btn-secondary">
-            Back to companies
-          </Link>
-        </div>
+    <div className="max-w-2xl mx-auto p-8 space-y-8">
+      <div className="text-center space-y-2">
+        <h1 className="text-3xl font-bold text-white">Extraction Complete</h1>
+        <p className="text-slate-400">Your financial statements and notes have been extracted.</p>
       </div>
 
-      <div className="card space-y-1 text-sm text-slate-300">
-        <p>
-          <span className="font-semibold">File:</span>{" "}
-          <span className="font-mono text-slate-100">{summary.original_filename}</span>
-        </p>
-        <p>
-          <span className="font-semibold">Type:</span> {summary.doc_type}
-        </p>
-        <p>
-          <span className="font-semibold">Status:</span>{" "}
-          <span className="font-semibold text-primary-300">{summary.status}</span>
-        </p>
-        {summary.presentation_scale && (
-          <p className="mt-1 text-xs text-slate-400">
-            Presentation scale detected:{" "}
-            <code className="rounded bg-slate-900/60 px-1 py-0.5 text-xs text-slate-200">
-              {JSON.stringify(summary.presentation_scale)}
-            </code>
+      <div className="card p-6 space-y-4">
+        <div className="space-y-2 text-sm">
+          <div className="flex justify-between">
+            <span className="text-slate-400">File:</span>
+            <span className="font-mono text-slate-100">{summary.original_filename}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-slate-400">Type:</span>
+            <span className="text-slate-100">{summary.doc_type}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-slate-400">Status:</span>
+            <span className={`font-semibold ${summary.status === "MAPPED" ? "text-green-400" : "text-primary-300"}`}>
+              {summary.status}
+            </span>
+          </div>
+        </div>
+
+        <div className="border-t border-slate-700 pt-4">
+          <p className="text-sm text-slate-400 mb-4">
+            Download contains: Excel file with all statements, JSON file with notes, and notes summary.
           </p>
-        )}
-      </div>
-
-      <div className="card">
-        <h2 className="text-lg font-semibold text-white">Mapped line items</h2>
-        <p className="mt-1 text-sm text-slate-400">
-          Raw labels detected in the statements and their mapped canonical accounts. Confidence below internal
-          thresholds may be flagged as UNMAPPED.
-        </p>
-        <div className="mt-3 max-h-72 overflow-auto rounded border border-slate-800">
-          <table className="min-w-full text-left text-xs">
-            <thead className="bg-slate-900/80 text-slate-300">
-              <tr>
-                <th className="px-3 py-2">Raw label</th>
-                <th className="px-3 py-2">Canonical key</th>
-                <th className="px-3 py-2 text-right">Confidence</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-800 bg-slate-950/40">
-              {mappings.map((m, idx) => (
-                <tr key={idx}>
-                  <td className="px-3 py-1.5 text-slate-100">{m.raw_label || "-"}</td>
-                  <td className="px-3 py-1.5 font-mono text-xs text-primary-300">
-                    {m.canonical_key || "UNMAPPED"}
-                  </td>
-                  <td className="px-3 py-1.5 text-right text-slate-300">
-                    {typeof m.confidence === "number" ? `${(m.confidence * 100).toFixed(0)}%` : "-"}
-                  </td>
-                </tr>
-              ))}
-              {mappings.length === 0 && (
-                <tr>
-                  <td colSpan={3} className="px-3 py-3 text-center text-slate-500">
-                    No canonical mappings available yet. Ensure extraction and mapping have completed.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+          <button
+            type="button"
+            onClick={handleDownload}
+            disabled={downloading || summary.status !== "MAPPED"}
+            className="w-full btn-primary py-3 text-lg disabled:opacity-50"
+          >
+            {downloading ? "Preparing download..." : "Download Extracted Files"}
+          </button>
         </div>
       </div>
 
-      <div className="card">
-        <h2 className="text-lg font-semibold text-white">Notes overview</h2>
-        <p className="mt-1 text-sm text-slate-400">
-          Key notes identified in the AFS or supporting documents, with their titles and types where classified.
-        </p>
-        <ul className="mt-3 space-y-2 text-sm">
-          {notes.map((n, idx) => (
-            <li
-              key={idx}
-              className="rounded border border-slate-800 bg-slate-950/40 px-3 py-2 text-slate-200"
-            >
-              <div className="flex items-center justify-between">
-                <span className="font-semibold">
-                  Note {n.note_number || "?"}: {n.title || "(Untitled)"}
-                </span>
-                {n.note_type && (
-                  <span className="rounded-full bg-slate-900 px-2 py-0.5 text-xs uppercase tracking-wide text-slate-300">
-                    {n.note_type}
-                  </span>
-                )}
-              </div>
-            </li>
-          ))}
-          {notes.length === 0 && (
-            <li className="text-slate-500 text-sm">
-              No note classifications available yet. They will appear here once note extraction has run.
-            </li>
-          )}
-        </ul>
+      <div className="flex justify-center gap-4">
+        {summary.engagement_id && (
+          <Link 
+            href={`/engagements/${summary.engagement_id}`}
+            className="btn-secondary"
+          >
+            ← Back to Engagement
+          </Link>
+        )}
+        <Link href="/companies" className="btn-secondary">
+          Back to Companies
+        </Link>
       </div>
     </div>
   );
 }
-

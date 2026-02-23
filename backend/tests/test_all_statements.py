@@ -161,74 +161,14 @@ def classify_pages_with_llm(pdf_bytes: bytes) -> list[StatementPage]:
 
 def classify_pages_heuristic(pdf_bytes: bytes) -> list[StatementPage]:
     """
-    Heuristic to find PRIMARY statement pages.
+    Heuristic to find PRIMARY statement pages. Uses document_extractor.
     Handles two-column layouts where two statements appear on one page.
     """
-    import fitz
-    
-    doc = fitz.open(stream=pdf_bytes, filetype="pdf")
-    pages = []
-    
-    for i in range(len(doc)):
-        text = doc[i].get_text()
-        text_lower = text.lower()
-        page_no = i + 1
-        
-        # Skip pages that are clearly notes
-        if "notes to the" in text_lower[:300]:
-            continue
-        
-        # Skip index pages
-        if page_no < 10:
-            continue
-        
-        # Determine entity scope
-        entity_scope = "GROUP"
-        if "separate statement" in text_lower[:1000]:
-            entity_scope = "COMPANY"
-        elif "consolidated" in text_lower[:1000]:
-            entity_scope = "GROUP"
-        
-        # Check for each statement type
-        # This PDF has two-column layout, so multiple statements can be on one page
-        
-        # SFP detection
-        if "statement of financial position" in text_lower[:1000]:
-            if "total assets" in text_lower:
-                pages.append(StatementPage(page_no, "SFP", entity_scope, 0.9))
-        
-        # SCI detection
-        if "statement of comprehensive income" in text_lower[:1000]:
-            if "revenue" in text_lower or "profit" in text_lower:
-                pages.append(StatementPage(page_no, "SCI", entity_scope, 0.9))
-        
-        # SOCE detection
-        if "statement of changes in equity" in text_lower[:1000]:
-            if "balance at" in text_lower:
-                pages.append(StatementPage(page_no, "SOCE", entity_scope, 0.9))
-        
-        # CF detection - note that CF might be on same page as SOCE (page 12)
-        if "statement of cash flows" in text_lower[:1500]:
-            if "operating" in text_lower or "cash generated" in text_lower or "cash flows" in text_lower:
-                pages.append(StatementPage(page_no, "CF", entity_scope, 0.9))
-    
-    doc.close()
-    
-    # Deduplicate - keep PRIMARY statement page (skip index/contents pages)
-    # Page 10 is typically the contents page, actual statements start at page 11
-    seen = set()
-    unique_pages = []
-    
-    # Sort pages - prefer pages 11-13 for GROUP statements (main statement pages)
-    pages.sort(key=lambda p: (0 if 11 <= p.page_no <= 13 else 1, p.page_no))
-    
-    for p in pages:
-        key = f"{p.statement_type}_{p.entity_scope}"
-        if key not in seen:
-            seen.add(key)
-            unique_pages.append(p)
-    
-    return unique_pages
+    from app.services.document_extractor import detect_statement_pages
+
+    detected = detect_statement_pages(pdf_bytes)
+    # Convert to test's StatementPage (adds confidence field)
+    return [StatementPage(p.page_no, p.statement_type, p.entity_scope, 0.9) for p in detected]
 
 
 def extract_statement(pdf_bytes: bytes, page_no: int, statement_type: str) -> list[dict]:
@@ -248,74 +188,6 @@ def extract_soce(pdf_bytes: bytes, page_no: int) -> list[dict]:
     
     lines = extract_soce_structured_lines_geometry(pdf_bytes, page_no, start_line_no=1)
     return lines
-
-
-def format_statement_sheet(worksheet, df, statement_type: str):
-    """Apply formatting to a statement sheet like the PDF."""
-    from openpyxl.styles import Font, PatternFill, Border, Side, Alignment
-    from openpyxl.utils import get_column_letter
-    
-    bold_font = Font(bold=True)
-    grey_fill = PatternFill(start_color="D9D9D9", end_color="D9D9D9", fill_type="solid")
-    light_grey_fill = PatternFill(start_color="F2F2F2", end_color="F2F2F2", fill_type="solid")
-    thin_border = Side(style="thin", color="000000")
-    top_bottom_border = Border(top=thin_border, bottom=thin_border)
-    bottom_border = Border(bottom=thin_border)
-    
-    # Define totals patterns based on statement type
-    total_patterns = {
-        "SFP": ["total assets", "total equity", "total liabilities", "total current", "total non-current"],
-        "SCI": ["total comprehensive", "profit for the", "revenue", "operating profit", "gross profit"],
-        "CF": ["cash generated", "net increase", "net decrease", "cash and cash equivalents at"],
-        "SOCE": ["balance at", "total comprehensive", "dividends"],
-    }
-    patterns = total_patterns.get(statement_type, ["total"])
-    
-    label_col_idx = list(df.columns).index("raw_label") + 1 if "raw_label" in df.columns else None
-    
-    for row_idx, row in df.iterrows():
-        excel_row = row_idx + 2
-        raw_label = str(row.get("raw_label", "")).lower()
-        section = str(row.get("section", "")).lower() if row.get("section") else ""
-        
-        is_total_row = any(p in raw_label for p in patterns)
-        is_section_header = raw_label.upper() == raw_label and len(raw_label) < 50
-        
-        max_col = len(df.columns)
-        
-        if is_total_row or "balance at" in raw_label:
-            for col in range(1, max_col + 1):
-                cell = worksheet.cell(row=excel_row, column=col)
-                cell.font = bold_font
-                cell.fill = grey_fill
-                cell.border = top_bottom_border
-        elif section and label_col_idx:
-            cell = worksheet.cell(row=excel_row, column=label_col_idx)
-            cell.alignment = Alignment(indent=1)
-    
-    # Format header row
-    header_fill = PatternFill(start_color="4472C4", end_color="4472C4", fill_type="solid")
-    header_font = Font(bold=True, color="FFFFFF")
-    
-    for col in range(1, len(df.columns) + 1):
-        cell = worksheet.cell(row=1, column=col)
-        cell.fill = header_fill
-        cell.font = header_font
-        cell.border = Border(bottom=thin_border)
-    
-    # Auto-adjust column widths
-    for idx, col in enumerate(df.columns):
-        try:
-            max_len = max(
-                df[col].astype(str).str.len().max() if len(df) > 0 else 0,
-                len(str(col))
-            ) + 2
-        except:
-            max_len = len(str(col)) + 2
-        col_letter = get_column_letter(idx + 1)
-        worksheet.column_dimensions[col_letter].width = min(max_len, 50)
-    
-    worksheet.freeze_panes = "C2"
 
 
 def test_all_statements(pdf_path: str, output_dir: str = None, use_llm: bool = True):
@@ -522,6 +394,8 @@ def test_all_statements(pdf_path: str, output_dir: str = None, use_llm: bool = T
         if new_columns:
             all_dfs[key] = df.rename(columns=new_columns)
     
+    from app.services.excel_formatting import format_statement_sheet, format_summary_sheet
+
     # Clean all string columns to remove illegal Excel characters
     for key, df in all_dfs.items():
         for col in df.columns:
@@ -541,19 +415,8 @@ def test_all_statements(pdf_path: str, output_dir: str = None, use_llm: bool = T
         }
         summary_df = pd.DataFrame(summary_data)
         summary_df.to_excel(writer, sheet_name="Summary", index=False)
-        
-        # Format summary sheet
-        ws_summary = writer.sheets["Summary"]
-        from openpyxl.styles import Font, PatternFill
-        header_fill = PatternFill(start_color="4472C4", end_color="4472C4", fill_type="solid")
-        header_font = Font(bold=True, color="FFFFFF")
-        for col in range(1, 3):
-            cell = ws_summary.cell(row=1, column=col)
-            cell.fill = header_fill
-            cell.font = header_font
-        ws_summary.column_dimensions["A"].width = 20
-        ws_summary.column_dimensions["B"].width = 40
-        
+        format_summary_sheet(writer.sheets["Summary"])
+
         for sheet_name, df in all_dfs.items():
             # Truncate sheet name if needed (Excel limit: 31 chars)
             safe_name = sheet_name[:31]

@@ -1,0 +1,194 @@
+NOTES SUMMARY
+============================================================
+
+Note 1: Accounting policies
+  Pages: 13-24
+  Content: 116955 chars
+
+Note 2: Operating segment information
+  Pages: 24-25
+  Content: 4736 chars
+
+Note 3: Property, plant and equipment
+  Pages: 25-26
+  Content: 4561 chars
+
+Note 4: Assets classified as held for sale
+  Pages: 26-26
+  Content: 4268 chars
+
+Note 5: Investment properties
+  Pages: 26-27
+  Content: 2180 chars
+
+Note 6: Right-of-use assets
+  Pages: 27-27
+  Content: 1050 chars
+
+Note 7: Intangible assets
+  Pages: 27-28
+  Content: 3313 chars
+
+Note 8: Impairment of non-financial assets
+  Pages: 28-29
+  Content: 6760 chars
+
+Note 9: Equity accounted investments
+  Pages: 29-31
+  Content: 10116 chars
+
+Note 10: Investments at fair value through other comprehensive income
+  Pages: 31-31
+  Content: 217 chars
+
+Note 11: Investment in insurance cell captive arrangements
+  Pages: 31-31
+  Content: 1956 chars
+
+Note 12: Government bonds and bills
+  Pages: 31-32
+  Content: 2227 chars
+
+Note 13: Loans receivable
+  Pages: 32-32
+  Content: 2193 chars
+
+Note 14: Deferred income tax
+  Pages: 32-33
+  Content: 3006 chars
+
+Note 15: Trade and other receivables
+  Pages: 33-34
+  Content: 4319 chars
+
+Note 16: Inventories
+  Pages: 34-34
+  Content: 463 chars
+
+Note 17: Stated capital and treasury shares
+  Pages: 34-34
+  Content: 2289 chars
+
+Note 18: Share-based compensation plans
+  Pages: 34-38
+  Content: 20316 chars
+
+Note 19: Reserves
+  Pages: 38-38
+  Content: 1567 chars
+
+Note 20: Lease liabilities
+  Pages: 38-39
+  Content: 4777 chars
+
+Note 21: Borrowings
+  Pages: 39-39
+  Content: 2975 chars
+
+Note 22: Employee benefit and other provisions
+  Pages: 39-40
+  Content: 1937 chars
+
+Note 23: Trade and other payables
+  Pages: 40-40
+  Content: 2388 chars
+
+Note 24: Contract liabilities
+  Pages: 40-40
+  Content: 677 chars
+
+Note 25: Liabilities directly associated with assets classified as held for sale
+  Pages: 40-41
+  Content: 966 chars
+
+Note 26: Revenue
+  Pages: 41-41
+  Content: 4199 chars
+
+Note 27: Depreciation and amortisation
+  Pages: 41-42
+  Content: 922 chars
+
+Note 28: Employee benefits
+  Pages: 42-42
+  Content: 1693 chars
+
+Note 29: Directors’ remuneration
+  Pages: 42-43
+  Content: 2053 chars
+
+Note 30: Other operating expenses*
+  Pages: 43-43
+  Content: 703 chars
+
+Note 31: Items of a capital nature*
+  Pages: 43-43
+  Content: 1198 chars
+
+Note 32: Operating profit
+  Pages: 43-43
+  Content: 553 chars
+
+Note 33: Finance costs*
+  Pages: 43-43
+  Content: 442 chars
+
+Note 34: Income tax expense*
+  Pages: 43-44
+  Content: 2585 chars
+
+Note 35: Disoperations
+  Pages: 44-46
+  Content: 8472 chars
+
+Note 36: Earnings/(loss) per share
+  Pages: 46-46
+  Content: 3779 chars
+
+Note 37: Dividends per share
+  Pages: 46-47
+  Content: 658 chars
+
+Note 38: Cash flow information
+  Pages: 47-48
+  Content: 6577 chars
+
+Note 39: Contingent liabilities
+  Pages: 48-48
+  Content: 2670 chars
+
+Note 40: Commitments
+  Pages: 48-48
+  Content: 825 chars
+
+Note 41: Borrowing powers
+  Pages: 48-48
+  Content: 140 chars
+
+Note 42: Post-employment benefits
+  Pages: 48-49
+  Content: 781 chars
+
+Note 43: Risk management and financial instrument disclosure
+  Pages: 49-63
+  Content: 83486 chars
+
+Note 44: Related party information
+  Pages: 63-64
+  Content: 4295 chars
+
+Note 45: Comparative figures
+  Pages: 64-65
+  Content: 7055 chars
+
+Note 46: Change in accounting estimate
+  Pages: 65-65
+  Content: 1590 chars
+
+Note 47: Events after the reporting date
+  Pages: 65-65
+  Content: 1093 chars
+
+Note 48: Going concern
+  Pages: 65-65
+  Content: 824 chars

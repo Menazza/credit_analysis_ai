@@ -70,14 +70,7 @@ class DocumentVersionSummaryResponse(BaseModel):
     created_at: str | None
     doc_type: str
     original_filename: str
-    # Raw LLM/semantic outputs so the UI can inspect what was mapped
-    presentation_scale: dict | None = None
-    canonical_mappings: dict | None = None
-    note_classifications: dict | None = None
-    notes_index: list[dict] | None = None
-    note_extractions: list[dict] | None = None
-    notes_manifest: dict | None = None  # Compact manifest for on-demand chunk fetch
-    reconciliation_checks: dict | None = None
+    engagement_id: str | None = None
 
 
 class LlmInputDebugResponse(BaseModel):
@@ -231,16 +224,8 @@ async def get_document_version_summary(
     user: User = Depends(get_current_user),
 ):
     """
-    High-level semantic summary for a specific uploaded document version.
-
-    Surfaces:
-    - basic version + document metadata
-    - presentation scale (currency/units)
-    - canonical mappings (raw labels → canonical keys)
-    - note classifications
-    so that users can inspect what the extraction/mapping pipeline produced.
+    Simple summary for a document version - just the basics for download page.
     """
-    # Ensure version belongs to current tenant
     result = await db.execute(
         select(DocumentVersion, Document)
         .join(Document, Document.id == DocumentVersion.document_id)
@@ -254,63 +239,6 @@ async def get_document_version_summary(
         raise HTTPException(status_code=404, detail="Version not found")
     version, doc = row
 
-    ctx_result = await db.execute(
-        select(PresentationContext).where(PresentationContext.document_version_id == version.id)
-    )
-    contexts = ctx_result.scalars().all()
-
-    pres_scale = None
-    mappings = None
-    notes = None
-    notes_manifest = None
-    for ctx in contexts:
-        if ctx.scope == "DOC" and ctx.scope_key == "presentation_scale":
-            pres_scale = ctx.evidence_json
-        elif ctx.scope == "DOC" and ctx.scope_key == "canonical_mappings":
-            mappings = ctx.evidence_json
-        elif ctx.scope == "DOC" and ctx.scope_key == "note_classifications":
-            notes = ctx.evidence_json
-        elif ctx.scope == "DOC" and ctx.scope_key == "notes_manifest_GROUP":
-            notes_manifest = ctx.evidence_json
-
-    recon_ctx_result = await db.execute(
-        select(PresentationContext).where(
-            PresentationContext.document_version_id == version.id,
-            PresentationContext.scope == "DOC",
-            PresentationContext.scope_key == "reconciliation_checks",
-        )
-    )
-    recon_ctx = recon_ctx_result.scalars().first()
-    reconciliation_checks = recon_ctx.evidence_json if recon_ctx and recon_ctx.evidence_json else None
-
-    ni_result = await db.execute(
-        select(NotesIndex).where(NotesIndex.document_version_id == version.id)
-    )
-    notes_index_rows = ni_result.scalars().all()
-    ne_result = await db.execute(
-        select(NoteExtraction).where(NoteExtraction.document_version_id == version.id)
-    )
-    note_extraction_rows = ne_result.scalars().all()
-    notes_index_list = [
-        {
-            "note_number": ni.note_number,
-            "title": ni.title,
-            "start_page": ni.start_page,
-            "end_page": ni.end_page,
-            "confidence": ni.confidence,
-        }
-        for ni in notes_index_rows
-    ]
-    note_extractions_list = [
-        {
-            "note_number": ne.note_number,
-            "title": ne.title,
-            "tables_json": ne.tables_json,
-            "evidence_json": ne.evidence_json,
-        }
-        for ne in note_extraction_rows
-    ]
-
     return DocumentVersionSummaryResponse(
         id=str(version.id),
         document_id=str(version.document_id),
@@ -319,13 +247,82 @@ async def get_document_version_summary(
         created_at=version.created_at.isoformat() if version.created_at else None,
         doc_type=doc.doc_type,
         original_filename=doc.original_filename,
-        presentation_scale=pres_scale,
-        canonical_mappings=mappings,
-        note_classifications=notes,
-        notes_index=notes_index_list if notes_index_list else None,
-        note_extractions=note_extractions_list if note_extractions_list else None,
-        notes_manifest=notes_manifest,
-        reconciliation_checks=reconciliation_checks,
+        engagement_id=str(doc.engagement_id) if doc.engagement_id else None,
+    )
+
+
+@router.get("/versions/{version_id}/download-extracted")
+async def download_extracted_files(
+    version_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """
+    Download the extracted files (Excel + JSON + notes summary) as a zip.
+    Files are stored in S3 by the extraction pipeline.
+    """
+    import zipfile
+    from app.services.storage import get_s3_client, get_settings
+    
+    result = await db.execute(
+        select(DocumentVersion, Document)
+        .join(Document, Document.id == DocumentVersion.document_id)
+        .where(
+            DocumentVersion.id == version_id,
+            Document.tenant_id == user.tenant_id,
+        )
+    )
+    row = result.one_or_none()
+    if not row:
+        raise HTTPException(status_code=404, detail="Version not found")
+    version, doc = row
+    
+    if version.status != "MAPPED":
+        raise HTTPException(status_code=400, detail="Extraction not complete yet")
+    
+    pdf_name = doc.original_filename or "document"
+    if pdf_name.lower().endswith(".pdf"):
+        pdf_name = pdf_name[:-4]
+    
+    # S3 keys for extracted files
+    base_key = f"extracted/{doc.tenant_id}/{version.id}"
+    files_to_download = [
+        (f"{base_key}/statements_{pdf_name}.xlsx", f"statements_{pdf_name}.xlsx"),
+        (f"{base_key}/notes_{pdf_name}.json", f"notes_{pdf_name}.json"),
+        (f"{base_key}/notes_summary_{pdf_name}.txt", f"notes_summary_{pdf_name}.txt"),
+    ]
+    
+    # Download files from S3 and create zip
+    client = get_s3_client()
+    bucket = get_settings().object_storage_bucket
+    
+    zip_buffer = io.BytesIO()
+    files_found = 0
+    with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zf:
+        for s3_key, filename in files_to_download:
+            try:
+                resp = client.get_object(Bucket=bucket, Key=s3_key)
+                content = resp["Body"].read()
+                zf.writestr(filename, content)
+                files_found += 1
+            except Exception as e:
+                # File might not exist, skip it
+                pass
+    
+    if files_found == 0:
+        raise HTTPException(
+            status_code=404, 
+            detail=f"No extracted files found for {pdf_name}. Extraction may have failed."
+        )
+    
+    zip_buffer.seek(0)
+    
+    return Response(
+        content=zip_buffer.getvalue(),
+        media_type="application/zip",
+        headers={
+            "Content-Disposition": f'attachment; filename="extracted_{pdf_name}.zip"',
+        },
     )
 
 

@@ -21,8 +21,11 @@ Usage:
 """
 from __future__ import annotations
 
+import logging
 import re
 from dataclasses import dataclass, field
+
+log = logging.getLogger(__name__)
 from pathlib import Path
 from typing import Any
 
@@ -31,6 +34,63 @@ import fitz
 from app.services.soce_geometry_extractor import extract_soce_geometry
 from app.services.statement_geometry_extractor import extract_statement_geometry
 from app.services.notes_store import extract_notes_structured, NoteSection
+
+
+def detect_scale_from_pdf(pdf_bytes: bytes) -> dict:
+    """
+    Detect the unit of measurement (scale) and currency from PDF text.
+    
+    Returns dict with:
+        - scale: "million", "thousand", "billion", or "units"
+        - scale_factor: numeric multiplier (e.g., 1_000_000 for Rm)
+        - scale_label: display label (e.g., "Rm", "R'000")
+        - currency: detected currency code (e.g., "ZAR", "USD", "EUR")
+    """
+    doc = fitz.open(stream=pdf_bytes, filetype="pdf")
+    search_pages = min(15, len(doc))
+    combined_text = ""
+    for i in range(search_pages):
+        combined_text += doc[i].get_text() + "\n"
+    doc.close()
+    
+    text_lower = combined_text.lower()
+    
+    # Currency detection
+    currency = None
+    if "south africa" in text_lower or "zar" in text_lower or " r " in text_lower:
+        currency = "ZAR"
+    elif "us dollar" in text_lower or "usd" in text_lower:
+        currency = "USD"
+    elif "euro" in text_lower or "eur" in text_lower:
+        currency = "EUR"
+    
+    # Scale detection
+    scale = "units"
+    scale_factor = 1.0
+    scale_label = "R"
+    
+    # Check for "Rm" (millions)
+    if re.search(r"\bRm\b", combined_text):
+        scale, scale_factor, scale_label = "million", 1_000_000, "Rm"
+    elif re.search(r"\br\s*million", text_lower) or re.search(r"amounts?\s+in\s+(r\s+)?millions?", text_lower):
+        scale, scale_factor, scale_label = "million", 1_000_000, "R million"
+    # Check for thousands
+    elif re.search(r"r'?000\b", text_lower) or re.search(r"amounts?\s+in\s+thousands?", text_lower):
+        scale, scale_factor, scale_label = "thousand", 1_000, "R'000"
+    # Check for billions
+    elif re.search(r"\br\s*billion", text_lower) or re.search(r"amounts?\s+in\s+(r\s+)?billions?", text_lower):
+        scale, scale_factor, scale_label = "billion", 1_000_000_000, "R billion"
+    
+    # Fallback: check for Rm pattern with year
+    if scale == "units" and ("Rm" in combined_text or re.search(r"\bRm\b.*\d{4}", combined_text)):
+        scale, scale_factor, scale_label = "million", 1_000_000, "Rm"
+    
+    return {
+        "scale": scale,
+        "scale_factor": scale_factor,
+        "scale_label": scale_label,
+        "currency": currency,
+    }
 
 
 @dataclass
@@ -53,111 +113,88 @@ def detect_statement_pages(pdf_bytes: bytes) -> list[StatementPage]:
     """
     Detect which pages contain which financial statements.
     Uses heuristic detection (fast, no LLM required).
+    Skips index/contents pages (typically pages 1-9) and uses content validation
+    to find primary statement tables. Handles two-column layouts.
     """
     doc = fitz.open(stream=pdf_bytes, filetype="pdf")
     pages: list[StatementPage] = []
-    
-    # Statement detection keywords
-    patterns = {
-        "SFP": [
-            r"statement\s+of\s+financial\s+position",
-            r"balance\s+sheet",
-            r"total\s+assets",
-            r"total\s+equity\s+and\s+liabilities",
-        ],
-        "SCI": [
-            r"statement\s+of\s+comprehensive\s+income",
-            r"income\s+statement",
-            r"profit\s+for\s+the\s+year",
-            r"revenue.*cost\s+of\s+sales",
-        ],
-        "SOCE": [
-            r"statement\s+of\s+changes\s+in\s+equity",
-            r"changes\s+in\s+equity",
-            r"balance\s+at.*july",
-            r"balance\s+at.*june",
-        ],
-        "CF": [
-            r"statement\s+of\s+cash\s+flows",
-            r"cash\s+flow\s+statement",
-            r"cash\s+flows\s+from\s+operating",
-            r"cash\s+generated\s+from\s+operations",
-        ],
-    }
-    
-    # Scope detection keywords
-    group_keywords = ["group", "consolidated", "subsidiaries"]
-    company_keywords = ["company", "parent", "holdings ltd"]
-    
-    found_statements: dict[str, set] = {k: set() for k in patterns}
-    
+
     for page_idx in range(len(doc)):
-        page = doc[page_idx]
+        text = doc[page_idx].get_text()
+        text_lower = text.lower()
         page_no = page_idx + 1
-        text = page.get_text().lower()
-        
+
         # Skip notes pages
-        if "notes to the" in text and "continued" in text:
+        if "notes to the" in text_lower[:300]:
             continue
-        
-        # Skip table of contents / index pages
-        if text.count("...") > 5:
+
+        # Skip index / contents pages (actual statements typically start page 10+)
+        if page_no < 10:
             continue
-        
-        for stmt_type, keywords in patterns.items():
-            for kw in keywords:
-                if re.search(kw, text):
-                    # Determine scope
-                    scope = "GROUP"
-                    if any(k in text for k in company_keywords) and not any(k in text for k in group_keywords):
-                        scope = "COMPANY"
-                    
-                    # Check if not already found for this scope
-                    key = f"{stmt_type}_{scope}"
-                    if key not in found_statements[stmt_type]:
-                        found_statements[stmt_type].add(key)
-                        pages.append(StatementPage(
-                            page_no=page_no,
-                            statement_type=stmt_type,
-                            entity_scope=scope,
-                        ))
-                    break
-    
-    # Handle two-column pages (common layout)
-    # If SFP is found but SCI is on same page, add SCI
-    # If SOCE is found but CF is on same page, add CF
-    additional = []
-    for sp in pages:
+
+        # Determine entity scope
+        entity_scope = "GROUP"
+        if "separate statement" in text_lower[:1000]:
+            entity_scope = "COMPANY"
+        elif "consolidated" in text_lower[:1000]:
+            entity_scope = "GROUP"
+
+        # SFP: must have statement title and total assets
+        if "statement of financial position" in text_lower[:1000] and "total assets" in text_lower:
+            pages.append(StatementPage(page_no=page_no, statement_type="SFP", entity_scope=entity_scope))
+
+        # SCI: must have statement title and revenue/profit
+        if "statement of comprehensive income" in text_lower[:1000]:
+            if "revenue" in text_lower or "profit" in text_lower:
+                pages.append(StatementPage(page_no=page_no, statement_type="SCI", entity_scope=entity_scope))
+
+        # SOCE: must have statement title and balance at
+        if "statement of changes in equity" in text_lower[:1000] and "balance at" in text_lower:
+            pages.append(StatementPage(page_no=page_no, statement_type="SOCE", entity_scope=entity_scope))
+
+        # CF: must have statement title and operating/cash content
+        if "statement of cash flows" in text_lower[:1500]:
+            if "operating" in text_lower or "cash generated" in text_lower or "cash flows" in text_lower:
+                pages.append(StatementPage(page_no=page_no, statement_type="CF", entity_scope=entity_scope))
+
+    # Deduplicate - keep first occurrence per statement_type + scope
+    seen: set[str] = set()
+    unique_pages: list[StatementPage] = []
+    pages.sort(key=lambda p: (0 if 11 <= p.page_no <= 13 else 1, p.page_no))
+    for p in pages:
+        key = f"{p.statement_type}_{p.entity_scope}"
+        if key not in seen:
+            seen.add(key)
+            unique_pages.append(p)
+
+    # Handle two-column pages: add companion statements on same page
+    additional: list[StatementPage] = []
+    for sp in unique_pages:
         page_text = doc[sp.page_no - 1].get_text().lower()
-        
+
         if sp.statement_type == "SFP":
             if "comprehensive income" in page_text or "profit for the year" in page_text:
-                key = f"SCI_{sp.entity_scope}"
-                if not any(p.statement_type == "SCI" and p.entity_scope == sp.entity_scope for p in pages):
+                if not any(p.statement_type == "SCI" and p.entity_scope == sp.entity_scope for p in unique_pages):
                     additional.append(StatementPage(sp.page_no, "SCI", sp.entity_scope))
-        
+
         if sp.statement_type == "SOCE":
             if "cash flows" in page_text or "operating activities" in page_text:
-                key = f"CF_{sp.entity_scope}"
-                if not any(p.statement_type == "CF" and p.entity_scope == sp.entity_scope for p in pages):
+                if not any(p.statement_type == "CF" and p.entity_scope == sp.entity_scope for p in unique_pages):
                     additional.append(StatementPage(sp.page_no, "CF", sp.entity_scope))
-        
+
         if sp.statement_type == "SCI":
             if "financial position" in page_text or "total assets" in page_text:
-                key = f"SFP_{sp.entity_scope}"
-                if not any(p.statement_type == "SFP" and p.entity_scope == sp.entity_scope for p in pages):
+                if not any(p.statement_type == "SFP" and p.entity_scope == sp.entity_scope for p in unique_pages):
                     additional.append(StatementPage(sp.page_no, "SFP", sp.entity_scope))
-        
+
         if sp.statement_type == "CF":
             if "changes in equity" in page_text or "balance at" in page_text:
-                key = f"SOCE_{sp.entity_scope}"
-                if not any(p.statement_type == "SOCE" and p.entity_scope == sp.entity_scope for p in pages):
+                if not any(p.statement_type == "SOCE" and p.entity_scope == sp.entity_scope for p in unique_pages):
                     additional.append(StatementPage(sp.page_no, "SOCE", sp.entity_scope))
-    
-    pages.extend(additional)
+
+    unique_pages.extend(additional)
     doc.close()
-    
-    return pages
+    return unique_pages
 
 
 def extract_statement(
@@ -222,6 +259,8 @@ def extract_all_from_pdf(
                     sp.statement_type,
                     sp.entity_scope,
                 )
+                if not rows:
+                    log.warning("extract_statement returned 0 rows for %s page %d", key, sp.page_no)
                 for row in rows:
                     row["page"] = sp.page_no
                     row["period_labels"] = period_labels
@@ -229,7 +268,7 @@ def extract_all_from_pdf(
                 if period_labels and not all_period_labels:
                     all_period_labels = period_labels
             except Exception as e:
-                print(f"Error extracting {key} from page {sp.page_no}: {e}")
+                log.warning("Error extracting %s from page %d: %s", key, sp.page_no, e, exc_info=True)
         
         if all_rows:
             result.statements[key] = all_rows
@@ -239,7 +278,7 @@ def extract_all_from_pdf(
         try:
             result.notes = extract_notes_structured(pdf_bytes, scope="GROUP")
         except Exception as e:
-            print(f"Error extracting notes: {e}")
+            log.warning("Error extracting notes: %s", e, exc_info=True)
     
     return result
 

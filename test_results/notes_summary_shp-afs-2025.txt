@@ -122,7 +122,7 @@ Note 8: Impairment of non-financial assets
 
 Note 9: Equity accounted investments
   Pages: 29-31
-  Content: 10119 chars
+  Content: 10116 chars
     9.1: Associates
     9.1.1: Summary financial information of Retail Logistics Fund (RF) (Pty) Ltd
     9.1.2: Summary financial information of Resilient Africa (Pty) Ltd
@@ -187,7 +187,7 @@ Note 17: Stated capital and treasury shares
 
 Note 18: Share-based compensation plans
   Pages: 34-38
-  Content: 20317 chars
+  Content: 20316 chars
     18.1: Equity-settled share-based payments
     18.1.1: ESP performance shares
     18.1.2: ESP co-investment shares

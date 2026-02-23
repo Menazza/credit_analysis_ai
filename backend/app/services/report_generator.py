@@ -13,7 +13,7 @@ from openpyxl.styles import Font, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
 
 
-# ——— RMB-style Credit Review Memo sections (populated from canonical dataset + commentary) ———
+# ——— Structured Credit Review Memo sections (Phase 1 architecture) ———
 MEMO_SECTIONS = [
     "executive_summary",
     "transaction_overview",
@@ -21,8 +21,12 @@ MEMO_SECTIONS = [
     "industry_overview",
     "competitive_position",
     "financial_performance",
+    "financial_risk",
     "cash_flow_liquidity",
     "balance_sheet_leverage",
+    "liquidity_leverage",
+    "stress_testing_results",
+    "accounting_disclosure_quality",
     "key_notes_accounting",
     "key_risks",
     "covenants_headroom",
@@ -118,7 +122,9 @@ def build_committee_pptx(
     recommendation: str,
     key_drivers: list[str],
     version_id: str,
+    section_texts: dict[str, str] | None = None,
 ) -> BytesIO:
+    """Build 8-10 slide committee deck."""
     try:
         from pptx import Presentation
         from pptx.util import Inches, Pt
@@ -127,14 +133,54 @@ def build_committee_pptx(
         buf.write(b"PPTX generation requires python-pptx; placeholder.")
         buf.seek(0)
         return buf
+
     prs = Presentation()
-    slide = prs.slides.add_slide(prs.slide_layouts[0])
-    title = slide.shapes.title
-    if title:
-        title.text = f"Credit Committee — {company_name}"
-    body = slide.placeholders[1] if len(slide.placeholders) > 1 else None
-    if body:
-        body.text = f"Rating: {rating_grade}\nRecommendation: {recommendation}\nVersion: {version_id}\n\nKey drivers:\n" + "\n".join(key_drivers[:5])
+    sections = section_texts or {}
+
+    def add_title_slide(title_text: str, subtitle: str = ""):
+        s = prs.slides.add_slide(prs.slide_layouts[0])
+        if s.shapes.title:
+            s.shapes.title.text = title_text
+        if len(s.placeholders) > 1 and subtitle:
+            s.placeholders[1].text = subtitle[:500]
+
+    def add_content_slide(title_text: str, body: str):
+        s = prs.slides.add_slide(prs.slide_layouts[1])
+        if s.shapes.title:
+            s.shapes.title.text = title_text
+        if len(s.placeholders) > 1:
+            s.placeholders[1].text = (body or "N/A")[:2000]
+
+    # 1. Title
+    add_title_slide(f"Credit Committee — {company_name}", f"Rating: {rating_grade} | Recommendation: {recommendation} | {version_id}")
+
+    # 2. Executive Summary
+    add_content_slide("Executive Summary", sections.get("executive_summary", ""))
+
+    # 3. Financial Performance
+    add_content_slide("Financial Performance", sections.get("financial_performance", ""))
+
+    # 4. Cash Flow & Liquidity
+    add_content_slide("Cash Flow & Liquidity", sections.get("cash_flow_liquidity", ""))
+
+    # 5. Balance Sheet & Leverage
+    add_content_slide("Balance Sheet & Leverage", sections.get("balance_sheet_leverage", ""))
+
+    # 6. Key Risks
+    add_content_slide("Key Risks", sections.get("key_risks", ""))
+
+    # 7. Stress Testing
+    add_content_slide("Stress Testing Results", sections.get("stress_testing_results", ""))
+
+    # 8. Rating Rationale
+    add_content_slide("Internal Rating Rationale", sections.get("internal_rating_rationale", f"Rating: {rating_grade}"))
+
+    # 9. Recommendation
+    add_content_slide("Recommendation", f"Recommendation: {recommendation}\n\nKey drivers: " + ", ".join(key_drivers[:5]))
+
+    # 10. Appendix
+    add_content_slide("Appendix", sections.get("appendices", f"Version: {version_id}"))
+
     buf = BytesIO()
     prs.save(buf)
     buf.seek(0)
