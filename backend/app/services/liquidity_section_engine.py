@@ -59,13 +59,16 @@ def run_liquidity_section_engine(
     if cr is not None:
         if cr >= 1.5:
             adequacy_score = 80
-        elif cr >= 1.0:
+        elif cr >= 1.2:
             adequacy_score = 65
-        elif cr >= 0.8:
+        elif cr >= 1.0:
             adequacy_score = 50
+        elif cr >= 0.8:
+            adequacy_score = 35
+            block["risk_flags"].append("Current ratio below 1.0x - Weak liquidity")
         else:
-            adequacy_score = 30
-            block["risk_flags"].append("Current ratio below 0.8x")
+            adequacy_score = 20
+            block["risk_flags"].append("Current ratio below 0.8x - Very weak liquidity")
     if cash < 0:
         adequacy_score = min(adequacy_score, 25)
         block["risk_flags"].append("Negative cash position")

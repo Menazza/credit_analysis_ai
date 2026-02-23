@@ -146,7 +146,16 @@ def _build_rating_rationale(rating_grade: str | None, key_metrics: dict[str, flo
 
 
 def build_placeholder(section_key: str) -> str:
-    return f"Section '{section_key}': content to be populated."
+    defaults = {
+        "transaction_overview": "Transaction details to be completed by deal team.",
+        "industry_overview": "Industry context and outlook to be added.",
+        "competitive_position": "Competitive positioning analysis to be completed.",
+        "security_collateral": "Security and collateral details to be documented.",
+        "recommendation_conditions": "Conditions to be specified based on facility terms.",
+        "monitoring_plan": "See Monitoring Triggers section below.",
+        "appendices": "Supporting schedules and exhibits.",
+    }
+    return defaults.get(section_key, "Content to be completed.")
 
 
 def build_all_sections(
@@ -212,6 +221,50 @@ def build_all_sections(
     return base
 
 
+def _build_3yr_table(facts_by_period: dict, metric_by_period: dict) -> str:
+    """Build 3-5 year financial summary table."""
+    periods = sorted(facts_by_period.keys(), reverse=True)[:5]
+    if len(periods) < 2:
+        return ""
+    lines = ["3-Year Financial Summary:", "Period | Revenue | EBITDA | EBITDA % | Net Debt | ND/EBITDA | Interest Cover"]
+    for pe in periods:
+        vals = facts_by_period.get(pe, {})
+        m = metric_by_period.get(pe, {})
+        rev = vals.get("revenue")
+        ebitda = m.get("ebitda") or vals.get("operating_profit")
+        margin = m.get("ebitda_margin")
+        nd = m.get("net_debt_incl_leases") or m.get("net_debt_ex_leases")
+        nd_eb = m.get("net_debt_to_ebitda")
+        ic = m.get("interest_cover")
+        rev_s = _fmt(rev) if rev is not None else "N/A"
+        ebitda_s = _fmt(ebitda) if ebitda is not None else "N/A"
+        margin_s = f"{margin:.1f}%" if margin is not None else "N/A"
+        nd_s = _fmt(nd) if nd is not None else "N/A"
+        nd_eb_s = f"{nd_eb:.2f}x" if nd_eb is not None else "N/A"
+        ic_s = f"{ic:.2f}x" if ic is not None else "N/A"
+        lines.append(f"{pe.isoformat()} | {rev_s} | {ebitda_s} | {margin_s} | {nd_s} | {nd_eb_s} | {ic_s}")
+    return "\n".join(lines)
+
+
+def _build_monitoring_triggers(blocks: dict, agg: dict) -> str:
+    """Build monitoring triggers from covenant/leverage/liquidity."""
+    lines = []
+    cov = blocks.get("covenants", {}).get("key_metrics") or {}
+    if cov.get("leverage_breach") or cov.get("interest_cover_breach"):
+        lines.append("Covenant breach: Monitor quarterly covenant compliance; early engagement with lenders.")
+    lev = blocks.get("leverage", {}).get("key_metrics") or {}
+    nd = lev.get("net_debt_to_ebitda_incl_leases")
+    if nd is not None and nd > 4:
+        lines.append(f"Leverage: ND/EBITDA at {nd:.2f}x; monitor debt reduction and EBITDA growth.")
+    liq = blocks.get("liquidity", {}).get("key_metrics") or {}
+    cr = liq.get("current_ratio")
+    if cr is not None and cr < 1.0:
+        lines.append(f"Liquidity: Current ratio {cr:.2f}x; monitor cash and undrawn facilities.")
+    if lines:
+        return "\n".join(lines)
+    return "Standard quarterly financial monitoring."
+
+
 def _format_stress(stress: dict[str, Any]) -> str:
     lines = []
     for name, sc in (stress.get("scenarios") or {}).items():
@@ -229,29 +282,46 @@ def _format_stress(stress: dict[str, Any]) -> str:
 
 
 def _section_block_to_text(block: dict[str, Any]) -> str:
-    """Render a section block as memo text."""
-    lines = []
+    """Render a section block as memo text with readable structure."""
+    parts = []
     name = block.get("section_name", "")
+    score = block.get("score", "N/A")
+    rating = block.get("section_rating", "N/A")
     if name:
-        lines.append(f"{name} (Score: {block.get('score', 'N/A')}/100, Rating: {block.get('section_rating', 'N/A')})")
+        parts.append(f"{name} — Score: {score}/100, Rating: {rating}\n")
+    # Commentary first (most readable summary)
+    comm = block.get("llm_commentary")
+    if comm:
+        parts.append(comm)
+        parts.append("")
+    # Key metrics in bullet form
     km = block.get("key_metrics") or {}
-    for k, v in list(km.items())[:12]:
-        if v is None:
+    skip_keys = {"scenarios"}  # Nested dicts handled elsewhere
+    metrics_lines = []
+    for k, v in list(km.items())[:14]:
+        if v is None or k in skip_keys:
             continue
         if isinstance(v, dict):
             continue
         label = k.replace("_", " ").title()
-        lines.append(f"  {label}: {_fmt(v) if isinstance(v, (int, float)) and abs(v) > 1000 else v}")
+        if isinstance(v, (int, float)):
+            if abs(v) > 1000 or (isinstance(v, float) and v != int(v)):
+                metrics_lines.append(f"- {label}: {_fmt(v)}")
+            else:
+                metrics_lines.append(f"- {label}: {v}")
+        else:
+            metrics_lines.append(f"- {label}: {v}")
+    if metrics_lines:
+        parts.append("Key metrics:\n" + "\n".join(metrics_lines))
+        parts.append("")
     flags = block.get("risk_flags") or []
     if flags:
-        lines.append("  Risk flags: " + "; ".join(flags[:5]))
+        parts.append("Risk flags:\n" + "\n".join(f"- {f}" for f in flags[:5]))
+        parts.append("")
     evidence = block.get("evidence_notes") or []
     if evidence:
-        lines.append("  Evidence: " + ", ".join(evidence[:5]))
-    comm = block.get("llm_commentary")
-    if comm:
-        lines.append("  " + comm)
-    return "\n".join(lines) if lines else ""
+        parts.append("Source notes: " + ", ".join(evidence[:5]))
+    return "\n".join(parts).strip() if parts else ""
 
 
 def build_sections_from_blocks(
@@ -291,6 +361,9 @@ def build_sections_from_blocks(
     perf_text = _section_block_to_text(perf_block)
     if not perf_text:
         perf_text = build_financial_performance(facts_by_period, metric_by_period)
+    three_yr = _build_3yr_table(facts_by_period, metric_by_period)
+    if three_yr:
+        perf_text = three_yr + "\n\n" + perf_text
 
     liq_block = blocks.get("liquidity", {})
     liq_text = _section_block_to_text(liq_block)
@@ -312,8 +385,17 @@ def build_sections_from_blocks(
     key_risks_text = "; ".join(key_risks_parts) if key_risks_parts else "Risk assessment from section blocks."
 
     rating_rationale = f"Internal rating: {grade}. Aggregate score: {agg.get('aggregate_score', 'N/A')}/100. "
-    for sec, data in list(breakdown.items())[:3]:
+    for sec, data in list(breakdown.items())[:5]:
         rating_rationale += f"{sec.replace('_', ' ').title()}: {data.get('section_rating', '')}. "
+    gov_rules = agg.get("governance_rules") or []
+    if gov_rules:
+        rating_rationale += f" Governance rules applied: {'; '.join(gov_rules[:3])}."
+
+    monitoring = _build_monitoring_triggers(blocks, agg)
+    if monitoring:
+        monitoring_plan = monitoring
+    else:
+        monitoring_plan = build_placeholder("monitoring_plan")
 
     return {
         "executive_summary": executive_summary,
@@ -334,6 +416,6 @@ def build_sections_from_blocks(
         "security_collateral": build_placeholder("security_collateral"),
         "internal_rating_rationale": rating_rationale,
         "recommendation_conditions": build_placeholder("recommendation_conditions"),
-        "monitoring_plan": build_placeholder("monitoring_plan"),
+        "monitoring_plan": monitoring_plan,
         "appendices": build_placeholder("appendices"),
     }

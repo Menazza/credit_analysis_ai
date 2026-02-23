@@ -81,4 +81,28 @@ def run_stress_engine(
             "st_debt_to_cash_stressed": round(st_debt_to_cash_c, 2) if st_debt_to_cash_c is not None else None,
         }
 
+        # Scenario D: EBITDA margin compression (-200bps)
+        margin_pct = (ebitda / rev * 100) if rev and rev > 0 else 0
+        margin_d = max(0, margin_pct - 2.0)
+        ebitda_d = rev * (margin_d / 100) if rev else 0
+        nd_d = net_debt / ebitda_d if ebitda_d and ebitda_d > 0 else None
+        ic_d = (op * (margin_d / margin_pct) / finance_costs) if finance_costs and margin_pct and margin_pct > 0 else None
+        results["scenarios"]["D_margin_compression_200bps"] = {
+            "period": pe_iso,
+            "ebitda_stressed": round(ebitda_d, 2),
+            "interest_cover_stressed": round(ic_d, 2) if ic_d is not None else None,
+            "net_debt_to_ebitda_stressed": round(nd_d, 2) if nd_d is not None else None,
+        }
+
+        # Scenario E: Combined (rev -10% + interest +200bps)
+        ebitda_e = ebitda_a
+        fc_e = finance_costs + extra_interest
+        ic_e = (op * 0.9 / fc_e) if fc_e and fc_e > 0 else None
+        nd_e = net_debt / ebitda_e if ebitda_e and ebitda_e > 0 else None
+        results["scenarios"]["E_combined"] = {
+            "period": pe_iso,
+            "interest_cover_stressed": round(ic_e, 2) if ic_e is not None else None,
+            "net_debt_to_ebitda_stressed": round(nd_e, 2) if nd_e is not None else None,
+        }
+
     return results

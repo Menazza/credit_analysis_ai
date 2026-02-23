@@ -38,6 +38,32 @@ MEMO_SECTIONS = [
 ]
 
 
+def _add_formatted_paragraphs(doc: "DocxDocument", text: str, style: str | None = None) -> None:
+    """Add paragraphs from text, splitting on double newlines. Preserves bullet lists."""
+    style = style or "Normal"
+    blocks = text.split("\n\n")
+    for block in blocks:
+        block = block.strip()
+        if not block:
+            continue
+        lines = block.split("\n")
+        if len(lines) > 1 and any(line.strip().startswith(("- ", "• ", "* ")) for line in lines):
+            # Bullet list
+            for line in lines:
+                line = line.strip()
+                if line.startswith(("- ", "• ", "* ")):
+                    line = line[2:].strip()
+                if line:
+                    p = doc.add_paragraph(line, style=style)
+                    p.paragraph_format.left_indent = Inches(0.25)
+                    p.paragraph_format.space_before = Pt(0)
+                    p.paragraph_format.space_after = Pt(3)
+        else:
+            p = doc.add_paragraph(block, style=style)
+            p.paragraph_format.space_after = Pt(6)
+            p.paragraph_format.line_spacing = 1.15
+
+
 def build_memo_docx(
     company_name: str,
     review_period_end: date | None,
@@ -47,20 +73,39 @@ def build_memo_docx(
     recommendation: str = "Maintain",
 ) -> BytesIO:
     doc = DocxDocument()
-    doc.add_heading("Credit Review Memo", 0)
-    doc.add_paragraph(f"Company: {company_name}")
-    doc.add_paragraph(f"Review period end: {review_period_end or 'N/A'}")
-    doc.add_paragraph(f"Version: {version_id}")
-    doc.add_paragraph("")
+    # Title and metadata
+    title = doc.add_heading("Credit Review Memo", 0)
+    title.alignment = WD_ALIGN_PARAGRAPH.LEFT
+    for s in doc.styles:
+        if s.name == "Normal":
+            s.font.size = Pt(11)
+            s.font.name = "Calibri"
+            break
+    meta = doc.add_paragraph()
+    meta.add_run("Company: ").bold = True
+    meta.add_run(f"{company_name}\n")
+    meta.add_run("Review period end: ").bold = True
+    meta.add_run(f"{review_period_end or 'N/A'}\n")
+    meta.add_run("Version: ").bold = True
+    meta.add_run(f"{version_id}")
+    meta.paragraph_format.space_after = Pt(12)
     if rating_grade:
-        doc.add_paragraph(f"Internal rating: {rating_grade}")
-    doc.add_paragraph(f"Recommendation: {recommendation}")
-    doc.add_paragraph("")
+        rp = doc.add_paragraph()
+        rp.add_run("Internal rating: ").bold = True
+        rp.add_run(f"{rating_grade}")
+        rp.paragraph_format.space_after = Pt(3)
+    rp2 = doc.add_paragraph()
+    rp2.add_run("Recommendation: ").bold = True
+    rp2.add_run(f"{recommendation}")
+    rp2.paragraph_format.space_after = Pt(18)
+    # Sections with readable formatting
     for section_key in MEMO_SECTIONS:
         title = section_key.replace("_", " ").title()
-        doc.add_heading(title, level=1)
+        h = doc.add_heading(title, level=1)
+        h.paragraph_format.space_before = Pt(12)
+        h.paragraph_format.space_after = Pt(6)
         text = section_texts.get(section_key) or "(No content)"
-        doc.add_paragraph(text)
+        _add_formatted_paragraphs(doc, text)
     buf = BytesIO()
     doc.save(buf)
     buf.seek(0)

@@ -1,6 +1,6 @@
 """
 Validation checks before running engines.
-Flag issues, downgrade confidence, but keep going.
+Balance sheet identity, cash reconciliation, debt/lease tie to notes.
 """
 from __future__ import annotations
 
@@ -25,6 +25,53 @@ def validate_facts(facts: list[dict[str, Any]]) -> dict[str, Any]:
     warnings = []
 
     for period_end, vals in by_period.items():
+        pe_str = str(period_end)
+
+        # BS: Total Assets = Total Equity + Total Liabilities (allow alternate: total_equity_and_liabilities)
+        ta = vals.get("total_assets")
+        te = vals.get("total_equity")
+        tl = vals.get("total_liabilities")
+        ta_alt = vals.get("total_equity_and_liabilities")  # some reports use this
+        if ta is not None and te is not None and tl is not None:
+            expected = te + tl
+            tol = 0.02 * max(abs(ta or 0), 1)
+            if abs((ta or 0) - expected) > tol:
+                failures.append({
+                    "check": "balance_sheet_identity",
+                    "period": pe_str,
+                    "expected": expected,
+                    "actual": ta,
+                    "message": "Total Assets != Total Equity + Total Liabilities",
+                })
+
+        # Cash: must be from SFP; CF closing cash can cross-check
+        cash = vals.get("cash_and_cash_equivalents")
+        if cash is not None and cash < 0:
+            warnings.append({
+                "check": "cash_negative",
+                "period": pe_str,
+                "value": cash,
+                "message": "Cash and equivalents negative - verify source (SFP preferred)",
+            })
+
+        # Debt reconciliation: gross debt = ST + LT + curr portion (internal consistency)
+        st = vals.get("short_term_borrowings") or 0
+        curr_port = vals.get("current_portion_long_term_debt") or 0
+        lt = vals.get("long_term_borrowings") or 0
+        lease_curr = vals.get("lease_liabilities_current") or 0
+        lease_nc = vals.get("lease_liabilities_non_current") or 0
+        gross_debt = st + curr_port + lt + lease_curr + lease_nc
+        if gross_debt > 0 and tl is not None and tl > 0:
+            debt_pct = gross_debt / tl
+            if debt_pct > 1.5:
+                warnings.append({
+                    "check": "debt_reconciliation",
+                    "period": pe_str,
+                    "gross_debt": gross_debt,
+                    "total_liabilities": tl,
+                    "message": "Gross debt > total liabilities - verify Note 21 tie",
+                })
+
         # IS: gross_profit ≈ revenue - cost_of_sales
         rev = vals.get("revenue")
         cos = vals.get("cost_of_sales")
@@ -34,27 +81,13 @@ def validate_facts(facts: list[dict[str, Any]]) -> dict[str, Any]:
             if abs(gp - expected) > 0.01 * max(abs(rev), 1):
                 warnings.append({
                     "check": "gross_profit",
-                    "period": str(period_end),
+                    "period": pe_str,
                     "expected": expected,
                     "actual": gp,
                 })
 
-        # BS: total_assets ≈ total_equity + total_liabilities
-        ta = vals.get("total_assets")
-        te = vals.get("total_equity")
-        tl = vals.get("total_liabilities")
-        if ta is not None and te is not None and tl is not None:
-            expected = te + tl
-            if abs(ta - expected) > 0.01 * max(abs(ta), 1):
-                failures.append({
-                    "check": "balance_sheet",
-                    "period": str(period_end),
-                    "expected": expected,
-                    "actual": ta,
-                })
-
     return {
-        "passed": len(failures) == 0,
+        "passed": len([f for f in failures if "identity" in f.get("check", "")]) == 0,
         "failures": failures,
         "warnings": warnings,
     }

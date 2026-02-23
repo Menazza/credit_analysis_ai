@@ -41,13 +41,20 @@ def run_covenant_engine(notes_json: dict | None, nd_ebitda: float | None, intere
     if nd_ebitda is not None and nd_ebitda < lev_max:
         pct = 100 * (lev_max - nd_ebitda) / lev_max
         block["key_metrics"]["leverage_headroom_pct"] = round(pct, 1)
+        block["key_metrics"]["leverage_breach"] = False
         headroom_score = 95 if nd_ebitda < 0 else (85 if pct >= 30 else 75)
     elif nd_ebitda is not None and nd_ebitda >= lev_max:
-        block["risk_flags"].append("ND/EBITDA at or above covenant limit")
-        headroom_score = 25
+        block["risk_flags"].append("Covenant breach: ND/EBITDA at or above limit")
+        block["key_metrics"]["leverage_breach"] = True
+        block["key_metrics"]["leverage_breach_distance"] = round(nd_ebitda - lev_max, 2)
+        headroom_score = 15
     if interest_cover is not None and interest_cover < ic_min:
-        block["risk_flags"].append("Interest cover below covenant minimum")
-        headroom_score = min(headroom_score, 30)
+        block["risk_flags"].append("Covenant breach: Interest cover below minimum")
+        block["key_metrics"]["interest_cover_breach"] = True
+        block["key_metrics"]["interest_cover_breach_distance"] = round(ic_min - interest_cover, 2)
+        headroom_score = min(headroom_score, 15)
+    else:
+        block["key_metrics"]["interest_cover_breach"] = False
     section_score = max(0, min(100, headroom_score))
     block["score"] = round(section_score, 1)
     block["section_rating"] = score_to_rating(section_score)

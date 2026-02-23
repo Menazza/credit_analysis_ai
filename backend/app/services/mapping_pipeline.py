@@ -57,12 +57,17 @@ def run_mapping(
             value = -value
         value_base = value * scale_factor
 
+        entity_scope = "GROUP" if "GROUP" in (sheet or "").upper() else "COMPANY"
+        scale_source = "Rm" if scale_factor == 1.0 else f"scale_{scale_factor}"
         source_ref = {
             "page": row.get("page"),
             "line_no": row.get("line_no"),
             "raw_label": raw_label[:200],
+            "source_label": raw_label[:200],
+            "source_sheet": sheet,
             "mapping_method": method,
-            "sheet": sheet,
+            "entity_scope": entity_scope,
+            "scale_source": scale_source,
         }
 
         fact = {

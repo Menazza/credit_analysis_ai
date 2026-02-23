@@ -100,6 +100,40 @@ def compute_fcf_conversion(facts: dict[tuple[str, date], float], period_end: dat
     return fcf / ebitda
 
 
+def compute_dso(facts: dict[tuple[str, date], float], period_end: date) -> float | None:
+    rec = get_fact(facts, "trade_receivables", period_end) or 0
+    rev = get_fact(facts, "revenue", period_end)
+    if not rev or rev <= 0:
+        return None
+    return (rec / rev) * 365
+
+
+def compute_dio(facts: dict[tuple[str, date], float], period_end: date) -> float | None:
+    inv = get_fact(facts, "inventories", period_end) or 0
+    cos = get_fact(facts, "cost_of_sales", period_end)
+    if cos is None or cos >= 0 or abs(cos) < 1:
+        return None
+    return (inv / abs(cos)) * 365
+
+
+def compute_dpo(facts: dict[tuple[str, date], float], period_end: date) -> float | None:
+    pay = get_fact(facts, "trade_payables", period_end) or 0
+    cos = get_fact(facts, "cost_of_sales", period_end)
+    if cos is None or cos >= 0 or abs(cos) < 1:
+        return None
+    return (pay / abs(cos)) * 365
+
+
+def compute_wc_intensity(facts: dict[tuple[str, date], float], period_end: date) -> float | None:
+    rec = get_fact(facts, "trade_receivables", period_end) or 0
+    inv = get_fact(facts, "inventories", period_end) or 0
+    pay = get_fact(facts, "trade_payables", period_end) or 0
+    rev = get_fact(facts, "revenue", period_end)
+    if not rev or rev <= 0:
+        return None
+    return (rec + inv - pay) / rev
+
+
 def run_engine(facts: dict[tuple[str, date], float], periods: list[date]) -> dict[str, Any]:
     """Compute all metrics for given facts and periods. Returns metric_key -> { period_end -> value } with calc_trace."""
     results = {}
@@ -128,4 +162,16 @@ def run_engine(facts: dict[tuple[str, date], float], periods: list[date]) -> dic
         fcf_conv = compute_fcf_conversion(facts, period_end)
         if fcf_conv is not None:
             results.setdefault("fcf_conversion", {})[period_end.isoformat()] = fcf_conv
+        dso = compute_dso(facts, period_end)
+        if dso is not None:
+            results.setdefault("dso_days", {})[period_end.isoformat()] = round(dso, 1)
+        dio = compute_dio(facts, period_end)
+        if dio is not None:
+            results.setdefault("dio_days", {})[period_end.isoformat()] = round(dio, 1)
+        dpo = compute_dpo(facts, period_end)
+        if dpo is not None:
+            results.setdefault("dpo_days", {})[period_end.isoformat()] = round(dpo, 1)
+        wc_int = compute_wc_intensity(facts, period_end)
+        if wc_int is not None:
+            results.setdefault("wc_intensity", {})[period_end.isoformat()] = round(wc_int, 4)
     return results

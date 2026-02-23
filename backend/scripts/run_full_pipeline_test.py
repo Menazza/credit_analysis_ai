@@ -191,7 +191,7 @@ async def main():
     print("=" * 70)
 
     from app.config import get_settings
-    from app.services.storage import get_s3_client, download_file_from_url
+    from app.services.storage import get_s3_client, download_file_from_url, download_json_from_storage
 
     output_dir = backend_dir.parent / "test_results" / "pipeline_output"
     output_dir.mkdir(parents=True, exist_ok=True)

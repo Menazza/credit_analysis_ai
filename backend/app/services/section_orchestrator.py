@@ -31,8 +31,9 @@ def run_section_based_analysis(facts: dict[tuple[str, date], float], periods: li
     lev_block = section_blocks.get("leverage", {}).get("key_metrics") or {}
     liq_block = section_blocks.get("liquidity", {}).get("key_metrics") or {}
     section_blocks["covenants"] = run_covenant_engine(notes_json, lev_block.get("net_debt_to_ebitda_incl_leases"), lev_block.get("ebitda_to_interest"), liq_block.get("undrawn_facilities"))
+    stress_raw = section_blocks.get("stress", {}).get("key_metrics", {}).get("scenarios", {})
 
-    aggregation = run_rating_aggregation(section_blocks)
+    aggregation = run_rating_aggregation(section_blocks, covenant_block=section_blocks.get("covenants"), stress_output={"scenarios": stress_raw}, notes_json=notes_json)
     if rating_grade_override:
         aggregation["rating_grade"] = rating_grade_override
     add_section_commentary(section_blocks, aggregation, company_name)
