@@ -47,16 +47,36 @@ def run_liquidity_section_engine(
         "liquidity_runway_months": lp.get("liquidity_runway_months"),
         "undrawn_facilities": lp.get("undrawn_facilities"),
         "lease_adjusted_liquidity": lp.get("lease_adjusted_liquidity"),
+        # 12-month forward Sources/Uses
+        "total_sources_12m": lp.get("total_sources_12m"),
+        "total_uses_12m": lp.get("total_uses_12m"),
+        "liquidity_surplus_12m": lp.get("liquidity_surplus_12m"),
+        "liquidity_coverage_ratio": lp.get("liquidity_coverage_ratio"),
+        "liquidity_headroom_pct": lp.get("liquidity_headroom_pct"),
     }
     block["by_period"] = liquidity.get("by_period", {})
     block["period"] = latest.isoformat()
 
+    # Primary signal: liquidity coverage ratio (Sources/Uses 12m)
+    coverage_ratio = lp.get("liquidity_coverage_ratio")
     adequacy_score = 50.0
     cr = lp.get("current_ratio")
     cash = lp.get("cash") or 0
     st_debt = lp.get("st_debt") or 0
 
-    if cr is not None:
+    if coverage_ratio is not None:
+        if coverage_ratio >= 1.5:
+            adequacy_score = 85
+        elif coverage_ratio >= 1.2:
+            adequacy_score = 70
+        elif coverage_ratio >= 1.0:
+            adequacy_score = 50
+            block["risk_flags"].append("Liquidity coverage 1.0–1.2x - Weak")
+        else:
+            adequacy_score = 20
+            block["risk_flags"].append("Liquidity coverage <1.0x - Critical")
+    # Fallback to current ratio if no coverage ratio
+    elif cr is not None:
         if cr >= 1.5:
             adequacy_score = 80
         elif cr >= 1.2:

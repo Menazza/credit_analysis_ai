@@ -3,32 +3,6 @@ from __future__ import annotations
 from typing import Any
 from app.core.section_schema import SECTION_WEIGHTS, score_to_rating, rating_to_score
 
-RATING_BANDS = [
-    (85, "AAA"),
-    (80, "AA+"),
-    (75, "AA"),
-    (70, "AA-"),
-    (65, "A+"),
-    (60, "A"),
-    (55, "A-"),
-    (50, "BBB+"),
-    (45, "BBB"),
-    (40, "BBB-"),
-    (35, "BB+"),
-    (30, "BB"),
-    (25, "BB-"),
-    (20, "B+"),
-    (15, "B"),
-    (10, "B-"),
-    (0, "CCC"),
-]
-
-def _score_to_grade(score: float) -> str:
-    for threshold, grade in RATING_BANDS:
-        if score >= threshold:
-            return grade
-    return "CCC"
-
 def run_rating_aggregation(section_blocks: dict[str, dict[str, Any]], covenant_block: dict | None = None, stress_output: dict | None = None, notes_json: dict | None = None) -> dict[str, Any]:
     from app.core.rating_governance import apply_governance
 
@@ -50,12 +24,12 @@ def run_rating_aggregation(section_blocks: dict[str, dict[str, Any]], covenant_b
         agg_score = 50.0
     else:
         agg_score = weighted_sum / total_weight
-    base_grade = _score_to_grade(agg_score)
-    gov = apply_governance(base_grade, section_blocks, covenant_block, stress_output, notes_json)
+    gov = apply_governance(agg_score, section_blocks, covenant_block, stress_output, notes_json)
     return {
         "aggregate_score": round(agg_score, 1),
         "rating_grade": gov["final_grade"],
         "base_grade": gov["base_grade"],
+        "hard_cap_grade": gov.get("hard_cap_grade"),
         "governance_rules": gov["applied_rules"],
         "section_breakdown": breakdown,
         "section_blocks": section_blocks,

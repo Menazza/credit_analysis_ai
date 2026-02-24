@@ -431,7 +431,9 @@ def run_financial_engine(credit_review_version_id: str):
             return {"error": "No normalized facts found"}
 
         facts_dict, periods = _facts_rows_to_dict(facts_rows)
-        engine_results = run_engine(facts_dict, periods)
+        engine_out = run_engine(facts_dict, periods, return_traces=True)
+        engine_results = engine_out[0] if isinstance(engine_out, tuple) else engine_out
+        engine_traces = engine_out[1] if isinstance(engine_out, tuple) else {}
 
         # Delete existing MetricFact for this version
         db.query(MetricFact).filter(MetricFact.credit_review_version_id == version.id).delete()
@@ -440,12 +442,14 @@ def run_financial_engine(credit_review_version_id: str):
         for metric_key, period_values in engine_results.items():
             for pe_str, value in (period_values or {}).items():
                 pe = date.fromisoformat(pe_str) if isinstance(pe_str, str) else pe_str
+                trace = (engine_traces.get(metric_key) or {}).get(pe_str)
+                calc_trace = [trace] if trace else []
                 db.add(MetricFact(
                     credit_review_version_id=version.id,
                     metric_key=metric_key,
                     period_end=pe,
                     value=float(value),
-                    calc_trace_json=[],
+                    calc_trace_json=calc_trace,
                 ))
                 count += 1
 
@@ -499,14 +503,15 @@ def run_rating(credit_review_version_id: str):
 
         from app.models.tenancy import Tenant
 
+        tenant_id = engagement.tenant_id  # Use Engagement.tenant_id (company can be None)
         model = (
             db.query(RatingModel)
-            .filter(RatingModel.tenant_id == engagement.company.tenant_id)
+            .filter(RatingModel.tenant_id == tenant_id)
             .first()
         )
         if not model:
             model = RatingModel(
-                tenant_id=engagement.company.tenant_id,
+                tenant_id=tenant_id,
                 name="Default rating model",
                 version="1.0",
                 config_json={},
@@ -583,7 +588,7 @@ def generate_pack(credit_review_version_id: str, formats: list | None = None):
             return {"error": "Engagement not found"}
 
         company = engagement.company
-        company_name = company.name or "Company"
+        company_name = (company.name if company else None) or "Company"
 
         # Build facts_by_period and metric_by_period from NormalizedFact + MetricFact
         facts_rows = db.query(NormalizedFact).filter(NormalizedFact.company_id == engagement.company_id).all()
@@ -634,6 +639,9 @@ def generate_pack(credit_review_version_id: str, formats: list | None = None):
         periods = sorted(facts_by_period.keys(), reverse=True)[:5]
         facts_dict = {(k, pe): v for pe, vals in facts_by_period.items() for k, v in vals.items()}
         from app.services.analysis_orchestrator import run_full_analysis
+        from app.services.provenance import add_provenance_to_analysis
+        from app.services.recommendation_conditions import compute_recommendation
+
         analysis_output = run_full_analysis(
             facts=facts_dict,
             periods=periods,
@@ -643,11 +651,17 @@ def generate_pack(credit_review_version_id: str, formats: list | None = None):
             company_name=company_name,
             rating_grade_override=rating_grade,
         )
+        add_provenance_to_analysis(analysis_output, facts_rows, m_rows)
+        cov_block = (analysis_output.get("section_blocks") or {}).get("covenants", {}).get("key_metrics") or {}
+        stress_scenarios = (analysis_output.get("section_blocks") or {}).get("stress", {}).get("key_metrics", {}).get("scenarios") or {}
+        stress_breaches = sum(1 for s in stress_scenarios.values() if isinstance(s, dict) and (s.get("net_debt_to_ebitda_stressed") or 0) >= 6 or (s.get("interest_cover_stressed") or 10) < 2)
+        recommendation, rec_conditions = compute_recommendation(key_metrics, cov_block, stress_breaches)
         section_texts = build_all_sections(
             company_name=company_name,
             review_period_end=review.review_period_end or (periods[0] if periods else None),
             rating_grade=rating_grade,
-            recommendation="Maintain",
+            recommendation=recommendation,
+            recommendation_conditions=rec_conditions,
             facts_by_period=facts_by_period,
             metric_by_period=metric_by_period,
             key_metrics=key_metrics,
@@ -666,6 +680,9 @@ def generate_pack(credit_review_version_id: str, formats: list | None = None):
                 version_id=version_id_str,
                 section_texts=section_texts,
                 rating_grade=rating_grade,
+                key_metrics=key_metrics,
+                metric_by_period=metric_by_period,
+                facts_by_period=facts_by_period,
             )
             docx_key = f"{bucket_prefix}/credit_memo.docx"
             url = upload_bytes(docx_key, buf.read(), content_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document")
@@ -673,16 +690,28 @@ def generate_pack(credit_review_version_id: str, formats: list | None = None):
             log.info("Uploaded DOCX to %s", docx_key)
 
         if "XLSX" in formats:
-            normalized_rows = [{"label": k.replace("_", " ").title(), "canonical_key": k, "values": {pe: facts_by_period.get(pe, {}).get(k) for pe in periods}} for k in sorted(set().union(*(f.keys() for f in facts_by_period.values())))]
-            metrics_rows = [{"label": mk.replace("_", " ").title(), "metric_key": mk, "values": {pe: metric_by_period.get(pe, {}).get(mk) for pe in periods}} for mk in sorted(set().union(*(m.keys() for m in metric_by_period.values()))) if mk]
-            buf = build_financial_model_xlsx(company_name=company_name, period_ends=periods, normalized_rows=normalized_rows, metrics_rows=metrics_rows, version_id=version_id_str)
+            # Use pe.isoformat() as dict key so build_financial_model_xlsx lookup matches
+            def _pe_key(pe):
+                return pe.isoformat() if hasattr(pe, "isoformat") else str(pe)
+            normalized_rows = [{"label": k.replace("_", " ").title(), "canonical_key": k, "values": {_pe_key(pe): facts_by_period.get(pe, {}).get(k) for pe in periods}} for k in sorted(set().union(*(f.keys() for f in facts_by_period.values())))]
+            metrics_rows = [{"label": mk.replace("_", " ").title(), "metric_key": mk, "values": {_pe_key(pe): metric_by_period.get(pe, {}).get(mk) for pe in periods}} for mk in sorted(set().union(*(m.keys() for m in metric_by_period.values()))) if mk]
+            buf = build_financial_model_xlsx(company_name=company_name, period_ends=periods, normalized_rows=normalized_rows, metrics_rows=metrics_rows, version_id=version_id_str, analysis_output=analysis_output)
             xlsx_key = f"{bucket_prefix}/financial_model.xlsx"
             url = upload_bytes(xlsx_key, buf.read(), content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
             db.add(ExportArtifact(credit_review_version_id=version.id, type="XLSX", storage_url=url))
             log.info("Uploaded XLSX to %s", xlsx_key)
 
         if "PPTX" in formats:
-            buf = build_committee_pptx(company_name=company_name, rating_grade=rating_grade or "N/A", recommendation="Maintain", key_drivers=list(key_metrics.keys())[:5], version_id=version_id_str, section_texts=section_texts)
+            buf = build_committee_pptx(
+                company_name=company_name,
+                rating_grade=rating_grade or "N/A",
+                recommendation=recommendation,
+                key_drivers=list(key_metrics.keys())[:5],
+                version_id=version_id_str,
+                section_texts=section_texts,
+                metric_by_period=metric_by_period,
+                facts_by_period=facts_by_period,
+            )
             pptx_key = f"{bucket_prefix}/committee_deck.pptx"
             url = upload_bytes(pptx_key, buf.read(), content_type="application/vnd.openxmlformats-officedocument.presentationml.presentation")
             db.add(ExportArtifact(credit_review_version_id=version.id, type="PPTX", storage_url=url))

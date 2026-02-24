@@ -1,0 +1,302 @@
+[
+  {
+    "canonical_key": "capex",
+    "period_end": "2024-06-30",
+    "value_base": -5718.0
+  },
+  {
+    "canonical_key": "capex",
+    "period_end": "2025-06-30",
+    "value_base": -6320.0
+  },
+  {
+    "canonical_key": "cash_and_cash_equivalents",
+    "period_end": "2024-06-30",
+    "value_base": 11732.0
+  },
+  {
+    "canonical_key": "cash_and_cash_equivalents",
+    "period_end": "2025-06-30",
+    "value_base": 9946.0
+  },
+  {
+    "canonical_key": "cash_generated_operations",
+    "period_end": "2024-06-30",
+    "value_base": 23628.0
+  },
+  {
+    "canonical_key": "cash_generated_operations",
+    "period_end": "2025-06-30",
+    "value_base": 21890.0
+  },
+  {
+    "canonical_key": "depreciation_amortisation",
+    "period_end": "2024-06-30",
+    "value_base": -6845.0
+  },
+  {
+    "canonical_key": "depreciation_amortisation",
+    "period_end": "2025-06-30",
+    "value_base": -8012.0
+  },
+  {
+    "canonical_key": "dividends_paid",
+    "period_end": "2024-06-30",
+    "value_base": -3743.0
+  },
+  {
+    "canonical_key": "dividends_paid",
+    "period_end": "2025-06-30",
+    "value_base": -3985.0
+  },
+  {
+    "canonical_key": "finance_costs",
+    "period_end": "2024-06-30",
+    "value_base": -4153.0
+  },
+  {
+    "canonical_key": "finance_costs",
+    "period_end": "2025-06-30",
+    "value_base": -5115.0
+  },
+  {
+    "canonical_key": "finance_income",
+    "period_end": "2024-06-30",
+    "value_base": 517.0
+  },
+  {
+    "canonical_key": "finance_income",
+    "period_end": "2025-06-30",
+    "value_base": 357.0
+  },
+  {
+    "canonical_key": "gross_profit",
+    "period_end": "2024-06-30",
+    "value_base": 55539.0
+  },
+  {
+    "canonical_key": "gross_profit",
+    "period_end": "2025-06-30",
+    "value_base": 61442.0
+  },
+  {
+    "canonical_key": "income_tax_expense",
+    "period_end": "2024-06-30",
+    "value_base": -2805.0
+  },
+  {
+    "canonical_key": "income_tax_expense",
+    "period_end": "2025-06-30",
+    "value_base": -2793.0
+  },
+  {
+    "canonical_key": "intangible_assets",
+    "period_end": "2024-06-30",
+    "value_base": 4695.0
+  },
+  {
+    "canonical_key": "intangible_assets",
+    "period_end": "2025-06-30",
+    "value_base": 5700.0
+  },
+  {
+    "canonical_key": "interest_paid",
+    "period_end": "2024-06-30",
+    "value_base": -4305.0
+  },
+  {
+    "canonical_key": "interest_paid",
+    "period_end": "2025-06-30",
+    "value_base": -5166.0
+  },
+  {
+    "canonical_key": "inventories",
+    "period_end": "2024-06-30",
+    "value_base": 28366.0
+  },
+  {
+    "canonical_key": "inventories",
+    "period_end": "2025-06-30",
+    "value_base": 29748.0
+  },
+  {
+    "canonical_key": "investment_property",
+    "period_end": "2024-06-30",
+    "value_base": 617.0
+  },
+  {
+    "canonical_key": "investment_property",
+    "period_end": "2025-06-30",
+    "value_base": 128.0
+  },
+  {
+    "canonical_key": "investments_and_associates",
+    "period_end": "2024-06-30",
+    "value_base": 2478.0
+  },
+  {
+    "canonical_key": "investments_and_associates",
+    "period_end": "2025-06-30",
+    "value_base": 2452.0
+  },
+  {
+    "canonical_key": "lease_liabilities_current",
+    "period_end": "2024-06-30",
+    "value_base": 36702.0
+  },
+  {
+    "canonical_key": "lease_liabilities_current",
+    "period_end": "2025-06-30",
+    "value_base": 43116.0
+  },
+  {
+    "canonical_key": "net_cfo",
+    "period_end": "2024-06-30",
+    "value_base": 13841.0
+  },
+  {
+    "canonical_key": "net_cfo",
+    "period_end": "2025-06-30",
+    "value_base": 10984.0
+  },
+  {
+    "canonical_key": "operating_expenses",
+    "period_end": "2024-06-30",
+    "value_base": -21916.0
+  },
+  {
+    "canonical_key": "operating_expenses",
+    "period_end": "2025-06-30",
+    "value_base": -22366.0
+  },
+  {
+    "canonical_key": "operating_profit",
+    "period_end": "2024-06-30",
+    "value_base": 12662.0
+  },
+  {
+    "canonical_key": "operating_profit",
+    "period_end": "2025-06-30",
+    "value_base": 14943.0
+  },
+  {
+    "canonical_key": "profit_after_tax",
+    "period_end": "2024-06-30",
+    "value_base": 6221.0
+  },
+  {
+    "canonical_key": "profit_after_tax",
+    "period_end": "2025-06-30",
+    "value_base": 7583.0
+  },
+  {
+    "canonical_key": "profit_before_tax",
+    "period_end": "2024-06-30",
+    "value_base": 9026.0
+  },
+  {
+    "canonical_key": "profit_before_tax",
+    "period_end": "2025-06-30",
+    "value_base": 10185.0
+  },
+  {
+    "canonical_key": "property_plant_equipment",
+    "period_end": "2024-06-30",
+    "value_base": 19672.0
+  },
+  {
+    "canonical_key": "property_plant_equipment",
+    "period_end": "2025-06-30",
+    "value_base": 22536.0
+  },
+  {
+    "canonical_key": "revenue",
+    "period_end": "2024-06-30",
+    "value_base": 232088.0
+  },
+  {
+    "canonical_key": "revenue",
+    "period_end": "2025-06-30",
+    "value_base": 252701.0
+  },
+  {
+    "canonical_key": "right_of_use_assets",
+    "period_end": "2024-06-30",
+    "value_base": 30469.0
+  },
+  {
+    "canonical_key": "right_of_use_assets",
+    "period_end": "2025-06-30",
+    "value_base": 36090.0
+  },
+  {
+    "canonical_key": "share_of_profit_associates",
+    "period_end": "2024-06-30",
+    "value_base": 268.0
+  },
+  {
+    "canonical_key": "share_of_profit_associates",
+    "period_end": "2025-06-30",
+    "value_base": 250.0
+  },
+  {
+    "canonical_key": "short_term_borrowings",
+    "period_end": "2024-06-30",
+    "value_base": 2895.0
+  },
+  {
+    "canonical_key": "short_term_borrowings",
+    "period_end": "2025-06-30",
+    "value_base": 1863.0
+  },
+  {
+    "canonical_key": "total_assets",
+    "period_end": "2024-06-30",
+    "value_base": 112328.0
+  },
+  {
+    "canonical_key": "total_assets",
+    "period_end": "2025-06-30",
+    "value_base": 124944.0
+  },
+  {
+    "canonical_key": "total_equity",
+    "period_end": "2024-06-30",
+    "value_base": 7516.0
+  },
+  {
+    "canonical_key": "total_equity",
+    "period_end": "2025-06-30",
+    "value_base": 7516.0
+  },
+  {
+    "canonical_key": "total_liabilities",
+    "period_end": "2024-06-30",
+    "value_base": 84604.0
+  },
+  {
+    "canonical_key": "total_liabilities",
+    "period_end": "2025-06-30",
+    "value_base": 94827.0
+  },
+  {
+    "canonical_key": "trade_payables",
+    "period_end": "2024-06-30",
+    "value_base": 86.0
+  },
+  {
+    "canonical_key": "trade_payables",
+    "period_end": "2025-06-30",
+    "value_base": 76.0
+  },
+  {
+    "canonical_key": "trade_receivables",
+    "period_end": "2024-06-30",
+    "value_base": 416.0
+  },
+  {
+    "canonical_key": "trade_receivables",
+    "period_end": "2025-06-30",
+    "value_base": 585.0
+  }
+]

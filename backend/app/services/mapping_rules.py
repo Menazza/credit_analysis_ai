@@ -42,8 +42,8 @@ RAW_TO_CANONICAL: list[tuple[list[str], str, bool]] = [
     (["long-term borrowings", "long term borrowings", "non-current borrowings"], "long_term_borrowings", False),
     (["non-current lease liabilities"], "lease_liabilities_non_current", False),
     (["total liabilities"], "total_liabilities", False),
-    (["total equity", "equity"], "total_equity", False),
-    (["total equity and liabilities"], "total_assets", False),  # Balance sheet total = total assets
+    (["total equity", "equity", "total equity attributable to owners", "equity attributable to owners of the parent"], "total_equity", False),
+    (["total equity and liabilities"], "total_assets", False),  # RHS of BS = total assets
     # Cash flow
     (["cash generated from operations", "cash generated from operating activities"], "cash_generated_operations", False),
     (["cash flows from operating activities", "net cash from operating activities", "net cash flows from operating"], "net_cfo", False),
@@ -88,7 +88,8 @@ def pass_b_patterns() -> list[tuple[str, str, bool]]:
         (r"cost of sales", "cost_of_sales", True),
         (r"gross profit", "gross_profit", False),
         (r"operating profit", "operating_profit", False),
-        (r"profit (before|for) (tax|the year)", "profit_after_tax", False),
+        (r"profit before (tax|income tax)", "profit_before_tax", False),
+        (r"profit (for|attributable to) (the year|period|owners)", "profit_after_tax", False),
         (r"total assets", "total_assets", False),
         (r"total equity", "total_equity", False),
         (r"total liabilities", "total_liabilities", False),

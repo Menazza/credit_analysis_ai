@@ -20,15 +20,52 @@ def parse_year_from_column(col: str) -> str | None:
     return m.group(1) if m else None
 
 
+def load_extraction_from_file(file_path: str) -> dict[str, list[dict[str, Any]]]:
+    """
+    Load extraction Excel from local file path. Same structure as load_extraction_from_s3.
+    Used for gold tests and deterministic runs.
+    """
+    xl = pd.ExcelFile(file_path)
+    result: dict[str, list[dict[str, Any]]] = {}
+    for sheet in xl.sheet_names:
+        if sheet == "Summary":
+            continue
+        df = pd.read_excel(xl, sheet_name=sheet)
+        rows = df.to_dict(orient="records")
+        for r in rows:
+            for k, v in r.items():
+                if pd.isna(v):
+                    r[k] = None
+                elif isinstance(v, float) and k == "raw_label":
+                    r[k] = str(int(v)) if v == int(v) else str(v)
+            r["raw_label"] = str(r.get("raw_label") or "").strip()
+        result[sheet] = rows
+    return result
+
+
 def load_extraction_from_s3(excel_key: str) -> dict[str, list[dict[str, Any]]]:
     """
     Download Excel from S3 and return {sheet_name: [row_dicts]}.
     Row dict has: page, line_no, raw_label, note, section, and value cols by year.
     """
+    import logging
+    log = logging.getLogger(__name__)
     client = get_s3_client()
     bucket = get_settings().object_storage_bucket
-    resp = client.get_object(Bucket=bucket, Key=excel_key)
-    buf = io.BytesIO(resp["Body"].read())
+    try:
+        resp = client.get_object(Bucket=bucket, Key=excel_key)
+        buf = io.BytesIO(resp["Body"].read())
+    except Exception as e:
+        try:
+            from botocore.exceptions import ClientError
+            if isinstance(e, ClientError):
+                err_code = e.response.get("Error", {}).get("Code", "")
+                if err_code == "NoSuchKey":
+                    raise FileNotFoundError(f"Extraction Excel not found in S3: {excel_key}") from e
+        except ImportError:
+            pass
+        log.exception("S3 get_object failed for %s: %s", excel_key, e)
+        raise RuntimeError(f"Failed to load extraction from S3: {excel_key}") from e
     xl = pd.ExcelFile(buf)
     result: dict[str, list[dict[str, Any]]] = {}
     for sheet in xl.sheet_names:

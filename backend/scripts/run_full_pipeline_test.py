@@ -54,18 +54,25 @@ async def ensure_seed(db):
 
 
 async def main():
-    pdf_path = backend_dir.parent / "shp-afs-2025.pdf"
+    base_dir = backend_dir.parent
+    # Collect PDFs: single arg, or all shp-afs-20*.pdf sorted by year (best: multi-year analysis)
     if len(sys.argv) > 1:
-        pdf_path = Path(sys.argv[1])
-    if not pdf_path.exists():
-        print(f"ERROR: PDF not found: {pdf_path}")
+        pdf_paths = [Path(p) for p in sys.argv[1:] if Path(p).exists()]
+    else:
+        pdf_paths = sorted(
+            [p for p in base_dir.glob("shp-afs-20*.pdf") if p.is_file()],
+            key=lambda p: p.stem,
+        )
+    if not pdf_paths:
+        print(f"ERROR: No PDFs found. Place shp-afs-2022.pdf through shp-afs-2025.pdf in {base_dir}")
         sys.exit(1)
 
     print("=" * 70)
     print("FULL ANNUAL CREDIT ANALYSIS PIPELINE TEST")
     print("=" * 70)
-    print(f"\nPDF: {pdf_path.name}")
-    print(f"Size: {pdf_path.stat().st_size / 1024 / 1024:.2f} MB")
+    print(f"\nPDFs ({len(pdf_paths)}): {', '.join(p.name for p in pdf_paths)}")
+    for p in pdf_paths:
+        print(f"  - {p.name}: {p.stat().st_size / 1024 / 1024:.2f} MB")
 
     # 1. Ensure DB seeded and get tenant/company
     from app.db.session import async_session_maker
@@ -92,7 +99,7 @@ async def main():
             tenant_id=tenant.id,
             company_id=company.id,
             type="ANNUAL_REVIEW",
-            name=f"Test Review {pdf_path.stem}",
+            name=f"Test Review multi-year ({len(pdf_paths)} AFS)",
         )
         db.add(engagement)
         await db.flush()
@@ -115,71 +122,74 @@ async def main():
         print(f"CreditReview: {review.id}")
         print(f"CreditReviewVersion: {cr_version.id}")
 
-        # 4. Upload PDF to storage and create Document + DocumentVersion
+        # 4. Upload all PDFs to storage and create Document + DocumentVersion for each
         from app.models.document import Document, DocumentVersion
         from app.services.storage import upload_file, generate_doc_key
-
-        pdf_bytes = pdf_path.read_bytes()
-        sha256 = hashlib.sha256(pdf_bytes).hexdigest()
-        filename = pdf_path.name
-
-        doc = Document(
-            tenant_id=tenant.id,
-            company_id=company.id,
-            engagement_id=engagement.id,
-            doc_type="AFS",
-            original_filename=filename,
-            uploaded_by=user.id,
-        )
-        db.add(doc)
-        await db.flush()
-
-        key = generate_doc_key(str(tenant.id), str(company.id), str(doc.id), filename)
         import io
-        url = upload_file(key, io.BytesIO(pdf_bytes), content_type="application/pdf")
-        doc.storage_url = url
-        await db.flush()
 
-        version = DocumentVersion(
-            document_id=doc.id,
-            sha256=sha256,
-            status="PENDING",
-        )
-        db.add(version)
-        await db.flush()
+        version_ids = []
+        for pdf_path in pdf_paths:
+            pdf_bytes = pdf_path.read_bytes()
+            sha256 = hashlib.sha256(pdf_bytes).hexdigest()
+            filename = pdf_path.name
 
-        print(f"\nDocument: {doc.id}")
-        print(f"DocumentVersion: {version.id}")
-        print(f"Storage URL: {url[:80]}...")
+            doc = Document(
+                tenant_id=tenant.id,
+                company_id=company.id,
+                engagement_id=engagement.id,
+                doc_type="AFS",
+                original_filename=filename,
+                uploaded_by=user.id,
+            )
+            db.add(doc)
+            await db.flush()
+
+            key = generate_doc_key(str(tenant.id), str(company.id), str(doc.id), filename)
+            url = upload_file(key, io.BytesIO(pdf_bytes), content_type="application/pdf")
+            doc.storage_url = url
+            await db.flush()
+
+            version = DocumentVersion(
+                document_id=doc.id,
+                sha256=sha256,
+                status="PENDING",
+            )
+            db.add(version)
+            await db.flush()
+            version_ids.append((str(version.id), filename))
+            print(f"  Document: {filename} -> Version {version.id}")
         await db.commit()
 
-        version_id_str = str(version.id)
         cr_version_id_str = str(cr_version.id)
 
-    # 5. Run ingest + extraction (synchronously via Celery .apply() - no worker needed)
+    # 5. Run ingest + extraction for each document version
     print("\n" + "-" * 70)
-    print("Running ingest pipeline...")
+    print("Running ingest + extraction for each AFS...")
     print("-" * 70)
 
     from app.worker.tasks import run_ingest_pipeline, run_extraction
 
-    result = run_ingest_pipeline.apply(args=[version_id_str])
-    if not result.successful():
-        print(f"Ingest FAILED: {result.result}")
-        sys.exit(1)
-    print(f"Ingest result: {result.result}")
-
-    print("\nRunning extraction...")
-    result = run_extraction.apply(args=[version_id_str])
-    if not result.successful():
-        print(f"Extraction FAILED: {result.result}")
-        sys.exit(1)
-    print(f"Extraction result: {result.result}")
+    for version_id_str, filename in version_ids:
+        print(f"\n[{filename}] Ingest...")
+        result = run_ingest_pipeline.apply(args=[version_id_str])
+        if not result.successful():
+            print(f"  Ingest FAILED: {result.result}")
+            continue
+        print(f"  Ingest: {result.result}")
+        print(f"[{filename}] Extraction...")
+        result = run_extraction.apply(args=[version_id_str])
+        if not result.successful():
+            print(f"  Extraction FAILED: {result.result}")
+            continue
+        print(f"  Extraction: {result.result}")
 
     # 5b. Run full credit analysis (Phase 1-3: mapping, financial engine, rating, pack)
+    # Formats: DOCX (memo), XLSX (financial model/FS), PPTX (committee deck) — all produced every run
     from app.worker.tasks import run_full_credit_analysis
+    formats = ["DOCX", "XLSX", "PPTX"]
     print("\nRunning full credit analysis (mapping -> financial -> rating -> pack)...")
-    result = run_full_credit_analysis.apply(args=[cr_version_id_str, ["DOCX", "XLSX", "PPTX"]])
+    print(f"Output formats: {', '.join(formats)} (credit memo, financial model, committee deck)")
+    result = run_full_credit_analysis.apply(args=[cr_version_id_str, formats])
     if not result.successful():
         print(f"Full analysis FAILED: {result.result}")
     else:
@@ -197,20 +207,20 @@ async def main():
     output_dir.mkdir(parents=True, exist_ok=True)
     print(f"\nSaving all results to: {output_dir}")
 
-    # 6a. Extracted files from S3
+    # 6a. Extracted files from S3 (from all document versions)
     bucket = get_settings().object_storage_bucket
-    prefix = f"extracted/{tenant.id}/{version_id_str}/"
     try:
         s3 = get_s3_client()
-        resp = s3.list_objects_v2(Bucket=bucket, Prefix=prefix)
-        objects = resp.get("Contents", [])
-        for obj in objects:
-            key = obj["Key"]
-            name = key.split("/")[-1]
-            s3_resp = s3.get_object(Bucket=bucket, Key=key)
-            out_path = output_dir / name
-            out_path.write_bytes(s3_resp["Body"].read())
-            print(f"  - {name} -> {out_path}")
+        for vid, _ in version_ids:
+            prefix = f"extracted/{tenant.id}/{vid}/"
+            resp = s3.list_objects_v2(Bucket=bucket, Prefix=prefix)
+            for obj in resp.get("Contents", []):
+                key = obj["Key"]
+                name = key.split("/")[-1]
+                s3_resp = s3.get_object(Bucket=bucket, Key=key)
+                out_path = output_dir / name
+                out_path.write_bytes(s3_resp["Body"].read())
+                print(f"  - {name} -> {out_path}")
     except Exception as e:
         print(f"  Could not download extracted files: {e}")
 
@@ -234,7 +244,14 @@ async def main():
             try:
                 buf = download_file_from_url(art.storage_url)
                 out_path = output_dir / fname
-                out_path.write_bytes(buf)
+                try:
+                    out_path.write_bytes(buf)
+                except PermissionError:
+                    from datetime import datetime
+                    alt = output_dir / f"{out_path.stem}_{datetime.now().strftime('%Y%m%d_%H%M%S')}{out_path.suffix}"
+                    alt.write_bytes(buf)
+                    print(f"  - {fname}: file locked, saved as {alt.name}")
+                    continue
                 print(f"  - {fname} -> {out_path}")
             except Exception as e:
                 print(f"  - {fname}: download failed ({e})")
@@ -250,8 +267,9 @@ async def main():
                 if review:
                     eng = db_sync.get(Engagement, review.engagement_id)
                     if eng:
+                        facts_rows = list(db_sync.query(NormalizedFact).filter(NormalizedFact.company_id == eng.company_id).all())
                         facts_by_period = {}
-                        for r in db_sync.query(NormalizedFact).filter(NormalizedFact.company_id == eng.company_id).all():
+                        for r in facts_rows:
                             pe = r.period_end
                             if pe not in facts_by_period:
                                 facts_by_period[pe] = {}
@@ -275,7 +293,11 @@ async def main():
                             if notes_json:
                                 break
                         from app.services.analysis_orchestrator import run_full_analysis
+                        from app.services.provenance import add_provenance_to_analysis
+                        from app.models.metrics import MetricFact
                         analysis = run_full_analysis(facts_dict, periods, notes_json)
+                        m_rows = list(db_sync.query(MetricFact).filter(MetricFact.credit_review_version_id == cv.id).all())
+                        add_provenance_to_analysis(analysis, facts_rows, m_rows)
                         out_path = output_dir / "analysis_output.json"
                         import json as _json
                         out_path.write_text(_json.dumps(analysis, indent=2, default=str), encoding="utf-8")
@@ -285,7 +307,13 @@ async def main():
     finally:
         db_sync.close()
 
-    print(f"\nAll test results saved to: {output_dir}")
+    # Verify key outputs exist
+    expected = ["credit_memo.docx", "financial_model.xlsx", "committee_deck.pptx", "analysis_output.json"]
+    found = [f.name for f in output_dir.iterdir() if f.is_file() and (f.name in expected or f.name.startswith("credit_memo_"))]
+    memo_ok = any("credit_memo" in f for f in found)
+    xlsx_ok = "financial_model.xlsx" in found
+    print(f"\nOutputs: credit_memo={'ok' if memo_ok else 'missing'}, financial_model={'ok' if xlsx_ok else 'missing'}, committee_deck={'ok' if 'committee_deck.pptx' in found else 'missing'}")
+    print(f"All results saved to: {output_dir}")
     print("\n" + "=" * 70)
     print("PIPELINE TEST COMPLETE")
     print("=" * 70)

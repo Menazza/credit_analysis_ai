@@ -1,0 +1,22 @@
+{
+  "current_ratio_2024-06-30": 13.5907,
+  "current_ratio_2025-06-30": 20.7731,
+  "dso_days_2024-06-30": 0.7,
+  "dso_days_2025-06-30": 0.8,
+  "ebitda_2024-06-30": 5817.0,
+  "ebitda_2025-06-30": 6931.0,
+  "ebitda_margin_2024-06-30": 2.5064,
+  "ebitda_margin_2025-06-30": 2.7428,
+  "fcf_conversion_2024-06-30": 3.3624,
+  "fcf_conversion_2025-06-30": 2.4966,
+  "interest_cover_2024-06-30": 3.0489,
+  "interest_cover_2025-06-30": 2.9214,
+  "net_debt_ex_leases_2024-06-30": -8837.0,
+  "net_debt_ex_leases_2025-06-30": -8083.0,
+  "net_debt_incl_leases_2024-06-30": 27865.0,
+  "net_debt_incl_leases_2025-06-30": 35033.0,
+  "net_debt_to_ebitda_2024-06-30": 4.7903,
+  "net_debt_to_ebitda_2025-06-30": 5.0545,
+  "wc_intensity_2024-06-30": 0.1236,
+  "wc_intensity_2025-06-30": 0.1197
+}

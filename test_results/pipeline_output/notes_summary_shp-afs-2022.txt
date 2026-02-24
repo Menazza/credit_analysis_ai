@@ -1,0 +1,178 @@
+NOTES SUMMARY
+============================================================
+
+Note 1: Accounting policies
+  Pages: 61-63
+  Content: 19246 chars
+
+Note 2: Interests in subsidiaries
+  Pages: 63-63
+  Content: 5641 chars
+
+Note 3: Investments in associates
+  Pages: 63-64
+  Content: 760 chars
+
+Note 4: Deferred income tax assets
+  Pages: 64-64
+  Content: 130 chars
+
+Note 5: Trade and other receivables
+  Pages: 64-64
+  Content: 50 chars
+
+Note 6: Stated capital
+  Pages: 64-64
+  Content: 637 chars
+
+Note 7: Trade and other payables
+  Pages: 64-64
+  Content: 2044 chars
+
+Note 8: Directors’ remuneration
+  Pages: 64-64
+  Content: 298 chars
+
+Note 9: Expenses
+  Pages: 64-64
+  Content: 74 chars
+
+Note 10: Impairment losses
+  Pages: 64-64
+  Content: 122 chars
+
+Note 11: Income tax expense
+  Pages: 64-64
+  Content: 423 chars
+
+Note 12: Dividends per share
+  Pages: 64-65
+  Content: 466 chars
+
+Note 13: Cash flow information
+  Pages: 65-65
+  Content: 641 chars
+
+Note 14: Borrowing powers
+  Pages: 65-65
+  Content: 140 chars
+
+Note 15: Risk management and financial instrument disclosure
+  Pages: 65-65
+  Content: 6705 chars
+
+Note 16: Share-based compensation plans
+  Pages: 32-34
+  Content: 16961 chars
+
+Note 17: Reserves
+  Pages: 34-35
+  Content: 1381 chars
+
+Note 18: Lease liabilities
+  Pages: 35-35
+  Content: 4650 chars
+
+Note 19: Borrowings
+  Pages: 35-36
+  Content: 2984 chars
+
+Note 20: Provisions
+  Pages: 36-37
+  Content: 1842 chars
+
+Note 21: Trade and other payables
+  Pages: 37-37
+  Content: 2696 chars
+
+Note 22: Contract liabilities
+  Pages: 37-37
+  Content: 664 chars
+
+Note 23: Revenue
+  Pages: 37-38
+  Content: 2601 chars
+
+Note 24: Depreciation and amortisation
+  Pages: 38-38
+  Content: 195 chars
+
+Note 25: Employee benefits
+  Pages: 38-38
+  Content: 2254 chars
+
+Note 26: Directors’ remuneration
+  Pages: 38-39
+  Content: 2889 chars
+
+Note 27: Other operating expenses
+  Pages: 39-39
+  Content: 405 chars
+
+Note 28: Items of a capital nature
+  Pages: 39-39
+  Content: 764 chars
+
+Note 29: Operating profit
+  Pages: 39-39
+  Content: 415 chars
+
+Note 30: Finance costs
+  Pages: 39-40
+  Content: 438 chars
+
+Note 31: Income tax expense
+  Pages: 40-40
+  Content: 1852 chars
+
+Note 32: Disoperations
+  Pages: 40-43
+  Content: 10500 chars
+
+Note 33: Earnings per share
+  Pages: 43-44
+  Content: 2949 chars
+
+Note 34: Dividends per share
+  Pages: 44-44
+  Content: 343 chars
+
+Note 35: Cash flow information
+  Pages: 44-44
+  Content: 2170 chars
+
+Note 36: Contingent assets and liabilities
+  Pages: 44-45
+  Content: 2308 chars
+
+Note 37: Commitments
+  Pages: 45-45
+  Content: 820 chars
+
+Note 38: Borrowing powers
+  Pages: 45-45
+  Content: 140 chars
+
+Note 39: Post-employment benefits
+  Pages: 45-45
+  Content: 698 chars
+
+Note 40: Risk management and financial instrument disclosure
+  Pages: 45-56
+  Content: 75435 chars
+
+Note 41: Related party information
+  Pages: 56-57
+  Content: 3538 chars
+
+Note 42: South Africa’s social unrest
+  Pages: 57-57
+  Content: 2364 chars
+
+Note 43: Events after the reporting date
+  Pages: 57-57
+  Content: 765 chars
+
+Note 44: Going concern
+  Pages: 57-61
+  Content: 4661 chars

@@ -7,7 +7,8 @@ from typing import Any, TypedDict
 
 SECTION_RATINGS = ("Strong", "Adequate", "Weak")
 
-# Section weights for aggregate rating (must sum to 100)
+# Section weights for aggregate rating (must sum to 100).
+# stress and covenants are computed but governance-only (e.g. notch caps); not in weighted score.
 SECTION_WEIGHTS = {
     "business_risk": 25,
     "financial_performance": 25,

@@ -168,6 +168,7 @@ def build_all_sections(
     key_metrics: dict[str, float],
     notes_json: dict | None = None,
     analysis_output: dict[str, Any] | None = None,
+    recommendation_conditions: list[str] | None = None,
 ) -> dict[str, str]:
     """Build all memo section texts. Uses section-based structure when analysis_output has section_blocks."""
     from app.services.notes_indexer import format_risks_for_memo
@@ -184,6 +185,7 @@ def build_all_sections(
             aggregation=aggregation,
             facts_by_period=facts_by_period,
             metric_by_period=metric_by_period,
+            recommendation_conditions=recommendation_conditions,
         )
 
     base = {
@@ -202,7 +204,7 @@ def build_all_sections(
         "covenants_headroom": build_placeholder("covenants_headroom"),
         "security_collateral": build_placeholder("security_collateral"),
         "internal_rating_rationale": _build_rating_rationale(rating_grade, key_metrics),
-        "recommendation_conditions": build_placeholder("recommendation_conditions"),
+        "recommendation_conditions": "\n".join(recommendation_conditions) if recommendation_conditions else build_placeholder("recommendation_conditions"),
         "monitoring_plan": build_placeholder("monitoring_plan"),
         "appendices": build_placeholder("appendices"),
     }
@@ -246,6 +248,22 @@ def _build_3yr_table(facts_by_period: dict, metric_by_period: dict) -> str:
     return "\n".join(lines)
 
 
+def _build_rating_rationale_with_drivers(grade: str, agg: dict, breakdown: dict) -> str:
+    """Track 6A: Rationale tied to drivers - top positive/negative sections, governance thresholds."""
+    lines = [f"Internal rating: {grade}. Aggregate score: {agg.get('aggregate_score', 'N/A')}/100."]
+    sorted_secs = sorted(breakdown.items(), key=lambda x: x[1].get("score", 0), reverse=True)
+    top_pos = [(s, d.get("rating", "")) for s, d in sorted_secs[:2] if (d.get("score") or 0) >= 60]
+    top_neg = [(s, d.get("rating", "")) for s, d in reversed(sorted_secs[-2:]) if (d.get("score") or 100) < 60]
+    if top_pos:
+        lines.append(f"Top positive drivers: {', '.join(s.replace('_', ' ').title() + ' (' + r + ')' for s, r in top_pos)}.")
+    if top_neg:
+        lines.append(f"Key constraints: {', '.join(s.replace('_', ' ').title() + ' (' + r + ')' for s, r in top_neg)}.")
+    gov_rules = agg.get("governance_rules") or []
+    if gov_rules:
+        lines.append(f"Governance thresholds applied: {'; '.join(gov_rules[:3])}.")
+    return " ".join(lines)
+
+
 def _build_monitoring_triggers(blocks: dict, agg: dict) -> str:
     """Build monitoring triggers from covenant/leverage/liquidity."""
     lines = []
@@ -282,33 +300,35 @@ def _format_stress(stress: dict[str, Any]) -> str:
 
 
 def _section_block_to_text(block: dict[str, Any]) -> str:
-    """Render a section block as memo text with readable structure."""
+    """Render a section block: commentary first (narrative), then compact metrics."""
     parts = []
     name = block.get("section_name", "")
     score = block.get("score", "N/A")
     rating = block.get("section_rating", "N/A")
     if name:
         parts.append(f"{name} — Score: {score}/100, Rating: {rating}\n")
-    # Commentary first (most readable summary)
+    # Lead with commentary (analytical narrative)
     comm = block.get("llm_commentary")
     if comm:
-        parts.append(comm)
+        parts.append(comm.strip())
         parts.append("")
-    # Key metrics in bullet form
+    # Key metrics — limit to 10, prioritize leverage/liquidity/covenant
     km = block.get("key_metrics") or {}
-    skip_keys = {"scenarios"}  # Nested dicts handled elsewhere
+    skip_keys = {"scenarios", "geographic_regions"}
+    priority_substrs = ("net_debt", "ebitda_to_interest", "current_ratio", "liquidity_coverage",
+                        "revenue", "ebitda_margin", "liquidity_surplus", "headroom")
+    def _score_key(k: str) -> int:
+        for i, s in enumerate(priority_substrs):
+            if s in (k or "").lower():
+                return i
+        return 99
+    items = [(k, v) for k, v in km.items() if v is not None and k not in skip_keys and not isinstance(v, (dict, list))]
+    items.sort(key=lambda x: (_score_key(x[0]), x[0]))
     metrics_lines = []
-    for k, v in list(km.items())[:14]:
-        if v is None or k in skip_keys:
-            continue
-        if isinstance(v, dict):
-            continue
+    for k, v in items[:10]:
         label = k.replace("_", " ").title()
         if isinstance(v, (int, float)):
-            if abs(v) > 1000 or (isinstance(v, float) and v != int(v)):
-                metrics_lines.append(f"- {label}: {_fmt(v)}")
-            else:
-                metrics_lines.append(f"- {label}: {v}")
+            metrics_lines.append(f"- {label}: {_fmt(v)}")
         else:
             metrics_lines.append(f"- {label}: {v}")
     if metrics_lines:
@@ -333,6 +353,7 @@ def build_sections_from_blocks(
     aggregation: dict[str, Any],
     facts_by_period: dict[date, dict[str, float]],
     metric_by_period: dict[date, dict[str, float]],
+    recommendation_conditions: list[str] | None = None,
 ) -> dict[str, str]:
     """
     Build memo section texts from section blocks (institutional structure).
@@ -348,7 +369,9 @@ def build_sections_from_blocks(
     ]
     breakdown = agg.get("section_breakdown") or {}
     for sec, data in list(breakdown.items())[:5]:
-        exec_lines.append(f"  {sec.replace('_', ' ').title()}: {data.get('section_rating', 'N/A')} ({data.get('score', 0)}/100)")
+        rating = data.get("rating") or data.get("section_rating") or "N/A"
+        score = data.get("score", 0)
+        exec_lines.append(f"  • {sec.replace('_', ' ').title()}: {rating} ({score:.1f}/100)")
     if blocks.get("business_risk", {}).get("key_metrics", {}).get("revenue_growth_pct") is not None:
         exec_lines.append(f"Revenue growth: {blocks['business_risk']['key_metrics']['revenue_growth_pct']:.1f}% YoY.")
     if blocks.get("leverage", {}).get("key_metrics", {}).get("net_debt_to_ebitda_incl_leases") is not None:
@@ -384,12 +407,8 @@ def build_sections_from_blocks(
             key_risks_parts.extend(b["risk_flags"][:3])
     key_risks_text = "; ".join(key_risks_parts) if key_risks_parts else "Risk assessment from section blocks."
 
-    rating_rationale = f"Internal rating: {grade}. Aggregate score: {agg.get('aggregate_score', 'N/A')}/100. "
-    for sec, data in list(breakdown.items())[:5]:
-        rating_rationale += f"{sec.replace('_', ' ').title()}: {data.get('section_rating', '')}. "
-    gov_rules = agg.get("governance_rules") or []
-    if gov_rules:
-        rating_rationale += f" Governance rules applied: {'; '.join(gov_rules[:3])}."
+    # Track 6A: Rating rationale with drivers - top positive/negative, metric thresholds
+    rating_rationale = _build_rating_rationale_with_drivers(grade, agg, breakdown)
 
     monitoring = _build_monitoring_triggers(blocks, agg)
     if monitoring:
@@ -397,12 +416,39 @@ def build_sections_from_blocks(
     else:
         monitoring_plan = build_placeholder("monitoring_plan")
 
+    def _industry_from_blocks() -> str:
+        br = blocks.get("business_risk", {}).get("key_metrics") or {}
+        regions = br.get("geographic_regions") or []
+        segments = br.get("segment_count")
+        rev = br.get("revenue")
+        if regions or segments or rev:
+            parts = []
+            if segments:
+                parts.append(f"Company operates across {segments} business segments.")
+            if regions:
+                parts.append(f"Geographic exposure: {', '.join(regions[:5])}.")
+            return " ".join(parts) if parts else build_placeholder("industry_overview")
+        return build_placeholder("industry_overview")
+
+    def _competitive_from_blocks() -> str:
+        br = blocks.get("business_risk", {}).get("key_metrics") or {}
+        margin = br.get("ebitda_margin_pct")
+        growth = br.get("revenue_growth_pct")
+        if margin is not None or growth is not None:
+            parts = []
+            if margin is not None:
+                parts.append(f"EBITDA margin of {margin:.1f}%.")
+            if growth is not None:
+                parts.append(f"Revenue growth {growth:.1f}% YoY indicates market positioning.")
+            return " ".join(parts)
+        return build_placeholder("competitive_position")
+
     return {
         "executive_summary": executive_summary,
         "transaction_overview": build_placeholder("transaction_overview"),
         "business_description": _section_block_to_text(blocks.get("business_risk", {})),
-        "industry_overview": build_placeholder("industry_overview"),
-        "competitive_position": build_placeholder("competitive_position"),
+        "industry_overview": _industry_from_blocks(),
+        "competitive_position": _competitive_from_blocks(),
         "financial_performance": perf_text,
         "financial_risk": _format_stress({"scenarios": (blocks.get("stress", {}).get("key_metrics") or {}).get("scenarios", {})}) or build_placeholder("financial_risk"),
         "cash_flow_liquidity": liq_text,
@@ -415,7 +461,7 @@ def build_sections_from_blocks(
         "covenants_headroom": _section_block_to_text(blocks.get("covenants", {})),
         "security_collateral": build_placeholder("security_collateral"),
         "internal_rating_rationale": rating_rationale,
-        "recommendation_conditions": build_placeholder("recommendation_conditions"),
+        "recommendation_conditions": "\n".join(recommendation_conditions) if recommendation_conditions else build_placeholder("recommendation_conditions"),
         "monitoring_plan": monitoring_plan,
         "appendices": build_placeholder("appendices"),
     }

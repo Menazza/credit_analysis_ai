@@ -182,54 +182,59 @@ def detect_table_region(tokens: list[Token], statement_type: str) -> tuple[float
 
 
 def detect_years(tokens: list[Token], table_top: float) -> list[str]:
-    """Detect year columns from header area."""
+    """
+    Detect year columns from header area.
+
+    More forgiving matching so layouts like "2022 Rm" or
+    "Year ended 30 June 2022" still work.
+    """
     header_tokens = [t for t in tokens if table_top - 100 <= t.y0 <= table_top + 80]
-    
+
     # First, find the "Notes" or "Rm" header to help identify the header row
     notes_y = None
     for t in header_tokens:
         if t.text.lower() in ("notes", "note", "rm"):
             notes_y = t.y0
             break
-    
-    years = []
-    year_positions = []
-    
+
+    years: list[str] = []
+    year_positions: list[tuple[str, float, float, float]] = []
+
     for t in header_tokens:
         text = t.text.strip()
-        # Match 4-digit years (2020-2029), possibly with asterisk or other suffix
-        match = re.match(r'^(20[2-9]\d)\*?$', text)
-        if match:
-            year = match.group(1)
-            
-            # Check if this year is in a column header row (near Notes/Rm header)
-            # or in a title/description line (skip those)
-            if notes_y is not None:
-                # Year should be within 20 pixels of Notes header row
-                if abs(t.y0 - notes_y) > 20:
-                    continue
-            else:
-                # No Notes header found - check if year is surrounded by text
-                # (indicating it's part of a sentence, not a column header)
-                nearby_tokens = [
-                    tok for tok in header_tokens 
-                    if abs(tok.y0 - t.y0) < 3 and tok != t
-                ]
-                # If there are text tokens very close on both sides, skip
-                left_tokens = [tok for tok in nearby_tokens if tok.x1 < t.x0 and t.x0 - tok.x1 < 10]
-                right_tokens = [tok for tok in nearby_tokens if tok.x0 > t.x1 and tok.x0 - t.x1 < 10]
-                if left_tokens and right_tokens:
-                    # Surrounded by text - likely part of a title
-                    continue
-            
-            if year not in years:
-                years.append(year)
-                year_positions.append((year, t.x_center, t.x0, t.x1))
-    
+        # Match 4-digit years (2020-2029) anywhere in the token, allowing suffix/prefix
+        m = re.search(r"(20[2-9]\d)", text)
+        if not m:
+            continue
+        year = m.group(1)
+
+        # Check if this year is in a column header row (near Notes/Rm header)
+        # or in a title/description line (skip those)
+        if notes_y is not None:
+            # Year should be roughly aligned with Notes/Rm header row
+            if abs(t.y0 - notes_y) > 30:
+                continue
+        else:
+            # No Notes header found - check if year is surrounded by text
+            # (indicating it's part of a sentence, not a column header)
+            nearby_tokens = [
+                tok for tok in header_tokens
+                if abs(tok.y0 - t.y0) < 3 and tok != t
+            ]
+            left_tokens = [tok for tok in nearby_tokens if tok.x1 < t.x0 and t.x0 - tok.x1 < 10]
+            right_tokens = [tok for tok in nearby_tokens if tok.x0 > t.x1 and tok.x0 - t.x1 < 10]
+            if left_tokens and right_tokens:
+                # Surrounded by text - likely part of a title/sentence
+                continue
+
+        if year not in years:
+            years.append(year)
+            year_positions.append((year, t.x_center, t.x0, t.x1))
+
     # Sort by x position (left to right, which is usually most recent first)
     year_positions.sort(key=lambda x: x[1])
     years = [y[0] for y in year_positions]
-    
+
     return years, year_positions
 
 

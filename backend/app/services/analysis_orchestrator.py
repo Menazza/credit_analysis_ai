@@ -19,6 +19,9 @@ def run_full_analysis(
 ) -> dict[str, Any]:
     """
     Run section-based analysis (8 engines, weighted rating). Outputs section_blocks + aggregation.
+
+    rating_grade_override: When set (e.g. from legacy run_rating), overrides the section-based
+    aggregate rating. Used when the memo should display the model-driven rating.
     """
     from app.services.section_orchestrator import run_section_based_analysis
 

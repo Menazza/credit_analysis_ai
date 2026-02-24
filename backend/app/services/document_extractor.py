@@ -119,7 +119,12 @@ def detect_statement_pages(pdf_bytes: bytes) -> list[StatementPage]:
     doc = fitz.open(stream=pdf_bytes, filetype="pdf")
     pages: list[StatementPage] = []
 
-    for page_idx in range(len(doc)):
+    num_pages = len(doc)
+    # Skip index/contents: for long AFS (50+ pages), statements typically start a bit later,
+    # but some issuers place primary statements as early as page 6–9. Be more forgiving.
+    min_statement_page = 5 if num_pages >= 50 else 1
+
+    for page_idx in range(num_pages):
         text = doc[page_idx].get_text()
         text_lower = text.lower()
         page_no = page_idx + 1
@@ -128,8 +133,7 @@ def detect_statement_pages(pdf_bytes: bytes) -> list[StatementPage]:
         if "notes to the" in text_lower[:300]:
             continue
 
-        # Skip index / contents pages (actual statements typically start page 10+)
-        if page_no < 10:
+        if page_no < min_statement_page:
             continue
 
         # Determine entity scope

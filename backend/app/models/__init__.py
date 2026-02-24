@@ -11,6 +11,7 @@ from app.models.extraction import (
     NoteChunk,
 )
 from app.models.mapping import CanonicalAccount, MappingDecision, ValidationReport, NormalizedFact
+from app.models.mapping_rule import MappingRule, UnmappedLabel, PipelineRun
 from app.models.facility import Facility, SecurityItem, Covenant, CovenantTest
 from app.models.metrics import MetricFact, RatingModel, RatingResult, CommentaryBlock, ExportArtifact
 from app.models.audit import AuditLog
@@ -41,6 +42,9 @@ __all__ = [
     "MappingDecision",
     "ValidationReport",
     "NormalizedFact",
+    "MappingRule",
+    "UnmappedLabel",
+    "PipelineRun",
     "Facility",
     "SecurityItem",
     "Covenant",

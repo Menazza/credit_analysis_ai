@@ -134,34 +134,83 @@ def compute_wc_intensity(facts: dict[tuple[str, date], float], period_end: date)
     return (rec + inv - pay) / rev
 
 
-def run_engine(facts: dict[tuple[str, date], float], periods: list[date]) -> dict[str, Any]:
-    """Compute all metrics for given facts and periods. Returns metric_key -> { period_end -> value } with calc_trace."""
+# Provenance: formula inputs (canonical fact keys only; derived metrics use primitives)
+_FORMULA_INPUTS: dict[str, list[str]] = {
+    "ebitda": ["operating_profit", "depreciation_amortisation"],
+    "net_debt_ex_leases": ["cash_and_cash_equivalents", "short_term_borrowings", "current_portion_long_term_debt", "long_term_borrowings"],
+    "net_debt_incl_leases": ["cash_and_cash_equivalents", "short_term_borrowings", "current_portion_long_term_debt", "long_term_borrowings", "lease_liabilities_current", "lease_liabilities_non_current"],
+    "interest_cover": ["operating_profit", "finance_costs"],
+    "net_debt_to_ebitda": ["operating_profit", "depreciation_amortisation", "cash_and_cash_equivalents", "short_term_borrowings", "current_portion_long_term_debt", "long_term_borrowings", "lease_liabilities_current", "lease_liabilities_non_current"],
+    "ebitda_margin": ["operating_profit", "depreciation_amortisation", "revenue"],
+    "current_ratio": ["cash_and_cash_equivalents", "trade_receivables", "inventories", "trade_payables", "short_term_borrowings", "current_portion_long_term_debt"],
+    "fcf_conversion": ["net_cfo", "capex", "operating_profit", "depreciation_amortisation"],
+}
+
+
+def _build_inputs(facts: dict[tuple[str, date], float], period_end: date, metric_key: str, value: float) -> dict:
+    """Build inputs_used for provenance. Handles derived metrics (ebitda, net_debt_*)."""
+    inputs = []
+    keys = _FORMULA_INPUTS.get(metric_key, [])
+    for k in keys:
+        v = facts.get((k, period_end))
+        if v is not None:
+            inputs.append({"canonical_key": k, "period_end": period_end.isoformat(), "value": round(float(v), 2)})
+    return {"formula_id": f"v1_{metric_key}", "inputs": inputs, "output": round(value, 4)}
+
+
+def run_engine(facts: dict[tuple[str, date], float], periods: list[date], return_traces: bool = False) -> dict[str, Any] | tuple[dict, dict]:
+    """Compute all metrics. Returns metric_key -> { period_end -> value }. If return_traces, returns (results, traces)."""
     results = {}
+    traces: dict[str, dict[str, dict]] = {}
     for period_end in periods:
         ebitda = compute_ebitda(facts, period_end)
         if ebitda is not None:
-            results.setdefault("ebitda", {})[period_end.isoformat()] = ebitda
+            pe_s = period_end.isoformat()
+            results.setdefault("ebitda", {})[pe_s] = ebitda
+            if return_traces:
+                traces.setdefault("ebitda", {})[pe_s] = _build_inputs(facts, period_end, "ebitda", ebitda)
         nd_ex = compute_net_debt_ex_leases(facts, period_end)
         if nd_ex is not None:
-            results.setdefault("net_debt_ex_leases", {})[period_end.isoformat()] = nd_ex
+            pe_s = period_end.isoformat()
+            results.setdefault("net_debt_ex_leases", {})[pe_s] = nd_ex
+            if return_traces:
+                traces.setdefault("net_debt_ex_leases", {})[pe_s] = _build_inputs(facts, period_end, "net_debt_ex_leases", nd_ex)
         nd_incl = compute_net_debt_incl_leases(facts, period_end)
         if nd_incl is not None:
-            results.setdefault("net_debt_incl_leases", {})[period_end.isoformat()] = nd_incl
+            pe_s = period_end.isoformat()
+            results.setdefault("net_debt_incl_leases", {})[pe_s] = nd_incl
+            if return_traces:
+                traces.setdefault("net_debt_incl_leases", {})[pe_s] = _build_inputs(facts, period_end, "net_debt_incl_leases", nd_incl)
         ic = compute_interest_cover(facts, period_end)
         if ic is not None:
-            results.setdefault("interest_cover", {})[period_end.isoformat()] = ic
+            pe_s = period_end.isoformat()
+            results.setdefault("interest_cover", {})[pe_s] = ic
+            if return_traces:
+                traces.setdefault("interest_cover", {})[pe_s] = _build_inputs(facts, period_end, "interest_cover", ic)
         nd_ebitda = compute_net_debt_to_ebitda(facts, period_end)
         if nd_ebitda is not None:
-            results.setdefault("net_debt_to_ebitda", {})[period_end.isoformat()] = nd_ebitda
+            pe_s = period_end.isoformat()
+            results.setdefault("net_debt_to_ebitda", {})[pe_s] = nd_ebitda
+            if return_traces:
+                traces.setdefault("net_debt_to_ebitda", {})[pe_s] = _build_inputs(facts, period_end, "net_debt_to_ebitda", nd_ebitda)
         margin = compute_ebitda_margin(facts, period_end)
         if margin is not None:
-            results.setdefault("ebitda_margin", {})[period_end.isoformat()] = margin
+            pe_s = period_end.isoformat()
+            results.setdefault("ebitda_margin", {})[pe_s] = margin
+            if return_traces:
+                traces.setdefault("ebitda_margin", {})[pe_s] = _build_inputs(facts, period_end, "ebitda_margin", margin)
         cr = compute_current_ratio(facts, period_end)
         if cr is not None:
-            results.setdefault("current_ratio", {})[period_end.isoformat()] = cr
+            pe_s = period_end.isoformat()
+            results.setdefault("current_ratio", {})[pe_s] = cr
+            if return_traces:
+                traces.setdefault("current_ratio", {})[pe_s] = _build_inputs(facts, period_end, "current_ratio", cr)
         fcf_conv = compute_fcf_conversion(facts, period_end)
         if fcf_conv is not None:
-            results.setdefault("fcf_conversion", {})[period_end.isoformat()] = fcf_conv
+            pe_s = period_end.isoformat()
+            results.setdefault("fcf_conversion", {})[pe_s] = fcf_conv
+            if return_traces:
+                traces.setdefault("fcf_conversion", {})[pe_s] = _build_inputs(facts, period_end, "fcf_conversion", fcf_conv)
         dso = compute_dso(facts, period_end)
         if dso is not None:
             results.setdefault("dso_days", {})[period_end.isoformat()] = round(dso, 1)
@@ -174,4 +223,6 @@ def run_engine(facts: dict[tuple[str, date], float], periods: list[date]) -> dic
         wc_int = compute_wc_intensity(facts, period_end)
         if wc_int is not None:
             results.setdefault("wc_intensity", {})[period_end.isoformat()] = round(wc_int, 4)
+    if return_traces:
+        return results, traces
     return results
