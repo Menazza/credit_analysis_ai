@@ -1,10 +1,11 @@
 """
-Memo section builders — deterministic, data-driven, no LLM.
-Produces section text from NormalizedFact, MetricFact, RatingResult.
+Memo section builders with deterministic baseline and optional LLM narrative layer.
+Produces section text from facts/metrics/notes with conservative fallbacks.
 """
 from __future__ import annotations
 
 from datetime import date
+import re
 from typing import Any
 
 
@@ -185,6 +186,8 @@ def build_all_sections(
             aggregation=aggregation,
             facts_by_period=facts_by_period,
             metric_by_period=metric_by_period,
+            notes_json=notes_json,
+            analysis_output=analysis_output,
             recommendation_conditions=recommendation_conditions,
         )
 
@@ -204,6 +207,7 @@ def build_all_sections(
         "covenants_headroom": build_placeholder("covenants_headroom"),
         "security_collateral": build_placeholder("security_collateral"),
         "internal_rating_rationale": _build_rating_rationale(rating_grade, key_metrics),
+        "credit_risk_quantification": _build_credit_risk_quant_section(analysis_output),
         "recommendation_conditions": "\n".join(recommendation_conditions) if recommendation_conditions else build_placeholder("recommendation_conditions"),
         "monitoring_plan": build_placeholder("monitoring_plan"),
         "appendices": build_placeholder("appendices"),
@@ -299,6 +303,78 @@ def _format_stress(stress: dict[str, Any]) -> str:
     return "\n".join(lines) if lines else "Stress scenarios computed."
 
 
+def _build_key_notes_accounting(notes_json: dict[str, Any] | None) -> str:
+    """Create analyst-style key notes summary from extracted note disclosures."""
+    if not notes_json:
+        return build_placeholder("key_notes_accounting")
+    notes_root = notes_json or {}
+    notes = notes_root.get("notes") if isinstance(notes_root, dict) and isinstance(notes_root.get("notes"), dict) else notes_root
+    if not isinstance(notes, dict):
+        return build_placeholder("key_notes_accounting")
+
+    ranked: list[tuple[int, str, str]] = []
+    for note_id, note in notes.items():
+        if not isinstance(note, dict):
+            continue
+        title = str(note.get("title") or "").strip()
+        pages = str(note.get("pages") or "").strip()
+        text = str(note.get("text") or "")
+        if not (title or text):
+            continue
+        compact = re.sub(r"\s+", " ", text).strip().lower()
+        score = 0
+        for kw in (
+            "accounting policies", "judgement", "estimate", "impair", "deferred tax", "borrow",
+            "lease", "financial instrument", "liquidity", "covenant", "contingent", "going concern"
+        ):
+            if kw in compact or kw in title.lower():
+                score += 1
+        if score <= 0:
+            continue
+        excerpt = re.sub(r"\s+", " ", text).strip()[:220]
+        ref = f"Note {note_id}: {title or 'Untitled note'}"
+        if pages:
+            ref += f" (p. {pages})"
+        ranked.append((-score, str(note_id), f"- {ref} — {excerpt}"))
+
+    if not ranked:
+        return "No material accounting/credit notes were identified from extracted disclosures."
+    ranked.sort(key=lambda x: (x[0], x[1]))
+    return "Key notes reviewed:\n" + "\n".join(row for _, _, row in ranked[:12])
+
+
+def _build_credit_risk_quant_section(analysis_output: dict[str, Any] | None) -> str:
+    q = (analysis_output or {}).get("credit_risk_quantification") or {}
+    if not q:
+        return "Credit risk quantification not available."
+    pd = q.get("pd")
+    lgd = q.get("lgd")
+    d_lgd = q.get("downturn_lgd")
+    ead = q.get("ead")
+    el = q.get("expected_loss")
+    el_d = q.get("expected_loss_downturn")
+    lines = [
+        "9. Credit Risk Quantification",
+        f"9.1 Probability of Default (PD): {(pd * 100):.2f}% ({q.get('rating_grade', 'N/A')})"
+        if isinstance(pd, (int, float))
+        else "9.1 Probability of Default (PD): N/A",
+        f"9.2 Loss Given Default (LGD): {(lgd * 100):.2f}% | Downturn LGD: {(d_lgd * 100):.2f}%"
+        if isinstance(lgd, (int, float)) and isinstance(d_lgd, (int, float))
+        else "9.2 Loss Given Default (LGD): N/A",
+        f"9.3 Exposure at Default (EAD): {_fmt(ead)} (Drawn: {_fmt(q.get('drawn_exposure'))}, Undrawn: {_fmt(q.get('undrawn_commitments'))}, CCF: {q.get('ccf', 'N/A')})",
+        f"9.4 Expected Loss (ECL): {_fmt(el)} | Downturn EL: {_fmt(el_d)}",
+        "",
+        f"IFRS 9 Stage proxy: {q.get('ifrs9_stage', 'N/A')}.",
+    ]
+    ass = (q.get("assumptions") or {}).get("recovery_by_asset") or {}
+    if ass:
+        lines.append(
+            "Recovery assumptions: "
+            + ", ".join(f"{k.replace('_', ' ')}={_fmt(v)}" for k, v in ass.items() if isinstance(v, (int, float)))
+        )
+    return "\n".join(lines)
+
+
 def _section_block_to_text(block: dict[str, Any]) -> str:
     """Render a section block: commentary first (narrative), then compact metrics."""
     parts = []
@@ -353,6 +429,8 @@ def build_sections_from_blocks(
     aggregation: dict[str, Any],
     facts_by_period: dict[date, dict[str, float]],
     metric_by_period: dict[date, dict[str, float]],
+    notes_json: dict[str, Any] | None = None,
+    analysis_output: dict[str, Any] | None = None,
     recommendation_conditions: list[str] | None = None,
 ) -> dict[str, str]:
     """
@@ -401,11 +479,16 @@ def build_sections_from_blocks(
     stress_scenarios = (blocks.get("stress", {}).get("key_metrics") or {}).get("scenarios", {})
     stress_text = _format_stress({"scenarios": stress_scenarios}) if stress_scenarios else "Stress scenarios computed."
 
+    from app.services.notes_indexer import format_risks_for_memo
+
     key_risks_parts = []
     for b in [blocks.get("business_risk"), blocks.get("accounting_quality"), blocks.get("stress")]:
         if b and b.get("risk_flags"):
             key_risks_parts.extend(b["risk_flags"][:3])
+    notes_risks = format_risks_for_memo(notes_json)
     key_risks_text = "; ".join(key_risks_parts) if key_risks_parts else "Risk assessment from section blocks."
+    if notes_risks and "No risk-related disclosures identified" not in notes_risks:
+        key_risks_text = key_risks_text + "\n\n" + notes_risks
 
     # Track 6A: Rating rationale with drivers - top positive/negative, metric thresholds
     rating_rationale = _build_rating_rationale_with_drivers(grade, agg, breakdown)
@@ -443,7 +526,7 @@ def build_sections_from_blocks(
             return " ".join(parts)
         return build_placeholder("competitive_position")
 
-    return {
+    sections = {
         "executive_summary": executive_summary,
         "transaction_overview": build_placeholder("transaction_overview"),
         "business_description": _section_block_to_text(blocks.get("business_risk", {})),
@@ -456,12 +539,39 @@ def build_sections_from_blocks(
         "liquidity_leverage": _section_block_to_text(liq_block) + "\n\n" + _section_block_to_text(lev_block),
         "stress_testing_results": stress_text,
         "accounting_disclosure_quality": _section_block_to_text(blocks.get("accounting_quality", {})),
-        "key_notes_accounting": _section_block_to_text(blocks.get("accounting_quality", {})),
+        "key_notes_accounting": _build_key_notes_accounting(notes_json),
         "key_risks": key_risks_text,
         "covenants_headroom": _section_block_to_text(blocks.get("covenants", {})),
         "security_collateral": build_placeholder("security_collateral"),
         "internal_rating_rationale": rating_rationale,
+        "credit_risk_quantification": _build_credit_risk_quant_section(analysis_output),
         "recommendation_conditions": "\n".join(recommendation_conditions) if recommendation_conditions else build_placeholder("recommendation_conditions"),
         "monitoring_plan": monitoring_plan,
         "appendices": build_placeholder("appendices"),
     }
+
+    # Optional LLM rewrite for a junior-analyst narrative voice, grounded in metrics + notes.
+    try:
+        from app.services.memo_narrative_llm import generate_junior_analyst_sections
+
+        llm_sections = generate_junior_analyst_sections(
+            company_name=company_name,
+            review_period_end=review_period_end,
+            rating_grade=grade,
+            recommendation=recommendation,
+            section_blocks=blocks,
+            aggregation=agg,
+            facts_by_period=facts_by_period,
+            metric_by_period=metric_by_period,
+            notes_json=notes_json,
+            baseline_sections=sections,
+            recommendation_conditions=recommendation_conditions,
+        )
+        for key, value in (llm_sections or {}).items():
+            if key in sections and isinstance(value, str) and value.strip():
+                sections[key] = value.strip()
+    except Exception:
+        # Hard fallback remains deterministic.
+        pass
+
+    return sections

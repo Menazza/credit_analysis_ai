@@ -3,7 +3,9 @@
     "periods": [
       "2025-06-30",
       "2024-06-30",
-      "2023-06-30"
+      "2023-06-30",
+      "2022-06-30",
+      "2021-06-30"
     ],
     "fs_version": "",
     "mapping_version": ""
@@ -151,6 +153,38 @@
           "liquidity_coverage_ratio": 0.28,
           "liquidity_headroom_pct": -71.9,
           "months_runway_sources_uses": 1.9
+        },
+        "2022-06-30": {
+          "current_ratio": 0.6,
+          "quick_ratio": 0.2,
+          "st_debt_to_cash": 3.14,
+          "liquidity_runway_months": null,
+          "undrawn_facilities": null,
+          "lease_adjusted_liquidity": -17793.0,
+          "cash": 10665.0,
+          "st_debt": 33456.0,
+          "total_sources_12m": 17351.0,
+          "total_uses_12m": 68168.96,
+          "liquidity_surplus_12m": -50817.96,
+          "liquidity_coverage_ratio": 0.25,
+          "liquidity_headroom_pct": -74.5,
+          "months_runway_sources_uses": 1.9
+        },
+        "2021-06-30": {
+          "current_ratio": 0.58,
+          "quick_ratio": 0.18,
+          "st_debt_to_cash": 3.27,
+          "liquidity_runway_months": null,
+          "undrawn_facilities": null,
+          "lease_adjusted_liquidity": -16851.0,
+          "cash": 7950.0,
+          "st_debt": 26022.0,
+          "total_sources_12m": 15933.0,
+          "total_uses_12m": 55807.6,
+          "liquidity_surplus_12m": -39874.6,
+          "liquidity_coverage_ratio": 0.29,
+          "liquidity_headroom_pct": -71.5,
+          "months_runway_sources_uses": 1.7
         }
       },
       "period": "2025-06-30"
@@ -213,6 +247,28 @@
           "ebitda_to_interest": 1.65,
           "fixed_charge_cover": 0.87,
           "lease_adjusted_interest_cover": 0.87
+        },
+        "2022-06-30": {
+          "net_debt_ex_leases": -5667.0,
+          "net_debt_incl_leases": 22791.0,
+          "gross_debt": 33456.0,
+          "debt_to_capital": 0.8166,
+          "net_debt_to_ebitda_ex_leases": -1.0,
+          "net_debt_to_ebitda_incl_leases": 4.02,
+          "ebitda_to_interest": 1.87,
+          "fixed_charge_cover": 0.96,
+          "lease_adjusted_interest_cover": 0.96
+        },
+        "2021-06-30": {
+          "net_debt_ex_leases": -6729.0,
+          "net_debt_incl_leases": 18072.0,
+          "gross_debt": 26022.0,
+          "debt_to_capital": 0.7759,
+          "net_debt_to_ebitda_ex_leases": -1.55,
+          "net_debt_to_ebitda_incl_leases": 4.18,
+          "ebitda_to_interest": 1.37,
+          "fixed_charge_cover": 0.77,
+          "lease_adjusted_interest_cover": 0.77
         }
       },
       "period": "2025-06-30"
@@ -524,6 +580,38 @@
             "liquidity_coverage_ratio": 0.28,
             "liquidity_headroom_pct": -71.9,
             "months_runway_sources_uses": 1.9
+          },
+          "2022-06-30": {
+            "current_ratio": 0.6,
+            "quick_ratio": 0.2,
+            "st_debt_to_cash": 3.14,
+            "liquidity_runway_months": null,
+            "undrawn_facilities": null,
+            "lease_adjusted_liquidity": -17793.0,
+            "cash": 10665.0,
+            "st_debt": 33456.0,
+            "total_sources_12m": 17351.0,
+            "total_uses_12m": 68168.96,
+            "liquidity_surplus_12m": -50817.96,
+            "liquidity_coverage_ratio": 0.25,
+            "liquidity_headroom_pct": -74.5,
+            "months_runway_sources_uses": 1.9
+          },
+          "2021-06-30": {
+            "current_ratio": 0.58,
+            "quick_ratio": 0.18,
+            "st_debt_to_cash": 3.27,
+            "liquidity_runway_months": null,
+            "undrawn_facilities": null,
+            "lease_adjusted_liquidity": -16851.0,
+            "cash": 7950.0,
+            "st_debt": 26022.0,
+            "total_sources_12m": 15933.0,
+            "total_uses_12m": 55807.6,
+            "liquidity_surplus_12m": -39874.6,
+            "liquidity_coverage_ratio": 0.29,
+            "liquidity_headroom_pct": -71.5,
+            "months_runway_sources_uses": 1.7
           }
         },
         "period": "2025-06-30"
@@ -586,6 +674,28 @@
             "ebitda_to_interest": 1.65,
             "fixed_charge_cover": 0.87,
             "lease_adjusted_interest_cover": 0.87
+          },
+          "2022-06-30": {
+            "net_debt_ex_leases": -5667.0,
+            "net_debt_incl_leases": 22791.0,
+            "gross_debt": 33456.0,
+            "debt_to_capital": 0.8166,
+            "net_debt_to_ebitda_ex_leases": -1.0,
+            "net_debt_to_ebitda_incl_leases": 4.02,
+            "ebitda_to_interest": 1.87,
+            "fixed_charge_cover": 0.96,
+            "lease_adjusted_interest_cover": 0.96
+          },
+          "2021-06-30": {
+            "net_debt_ex_leases": -6729.0,
+            "net_debt_incl_leases": 18072.0,
+            "gross_debt": 26022.0,
+            "debt_to_capital": 0.7759,
+            "net_debt_to_ebitda_ex_leases": -1.55,
+            "net_debt_to_ebitda_incl_leases": 4.18,
+            "ebitda_to_interest": 1.37,
+            "fixed_charge_cover": 0.77,
+            "lease_adjusted_interest_cover": 0.77
           }
         },
         "period": "2025-06-30"
@@ -724,52 +834,72 @@
     "ebitda": {
       "2025-06-30": 6931.0,
       "2024-06-30": 5817.0,
-      "2023-06-30": 6042.0
+      "2023-06-30": 6042.0,
+      "2022-06-30": 5671.0,
+      "2021-06-30": 4328.0
     },
     "net_debt_ex_leases": {
       "2025-06-30": -8083.0,
       "2024-06-30": -8837.0,
-      "2023-06-30": -5944.0
+      "2023-06-30": -5944.0,
+      "2022-06-30": -5667.0,
+      "2021-06-30": -6729.0
     },
     "net_debt_incl_leases": {
       "2025-06-30": 35033.0,
       "2024-06-30": 27865.0,
-      "2023-06-30": 26538.0
+      "2023-06-30": 26538.0,
+      "2022-06-30": 22791.0,
+      "2021-06-30": 18072.0
     },
     "interest_cover": {
       "2025-06-30": 2.921407624633431,
       "2024-06-30": 3.048880327474115,
-      "2023-06-30": 3.3661395856052345
+      "2023-06-30": 3.3661395856052345,
+      "2022-06-30": 3.6936184430337455,
+      "2021-06-30": 3.1224555735056545
     },
     "net_debt_to_ebitda": {
       "2025-06-30": 5.054537584764104,
       "2024-06-30": 4.790269898573148,
-      "2023-06-30": 4.3922542204568025
+      "2023-06-30": 4.3922542204568025,
+      "2022-06-30": 4.018867924528302,
+      "2021-06-30": 4.175600739371534
     },
     "ebitda_margin": {
       "2025-06-30": 2.742767143778616,
       "2024-06-30": 2.506376891523905,
-      "2023-06-30": 2.810807793222799
+      "2023-06-30": 2.810807793222799,
+      "2022-06-30": 3.0842778515021645,
+      "2021-06-30": 2.575730524311135
     },
     "current_ratio": {
       "2025-06-30": 20.773078906652913,
       "2024-06-30": 13.590741361959074,
-      "2023-06-30": 5.667016334482242
+      "2023-06-30": 5.667016334482242,
+      "2022-06-30": 1.2378470254957508,
+      "2021-06-30": 1.2722568279827504
     },
     "fcf_conversion": {
       "2025-06-30": 2.4966094358678403,
       "2024-06-30": 3.3623861096785284,
-      "2023-06-30": 2.387454485269778
+      "2023-06-30": 2.387454485269778,
+      "2022-06-30": 1.7471345441721038,
+      "2021-06-30": 2.313539741219963
     },
     "dso_days": {
       "2025-06-30": 0.8,
       "2024-06-30": 0.7,
-      "2023-06-30": 0.3
+      "2023-06-30": 0.3,
+      "2022-06-30": 0.5,
+      "2021-06-30": 0.4
     },
     "wc_intensity": {
       "2025-06-30": 0.1197,
       "2024-06-30": 0.1236,
-      "2023-06-30": 0.1172
+      "2023-06-30": 0.1172,
+      "2022-06-30": 0.0034,
+      "2021-06-30": -0.0062
     }
   },
   "facts_by_period": {
@@ -867,6 +997,68 @@
       "total_liabilities": 76172.0,
       "trade_payables": 69.0,
       "trade_receivables": 178.0
+    },
+    "2022-06-30": {
+      "capex": -3222.0,
+      "cash_and_cash_equivalents": 10665.0,
+      "cash_generated_operations": 15005.0,
+      "depreciation_amortisation": -5384.0,
+      "dividends_paid": -3228.0,
+      "finance_costs": -2993.0,
+      "finance_income": 270.0,
+      "gross_profit": 45022.0,
+      "income_tax_expense": -2553.0,
+      "intangible_assets": 3561.0,
+      "interest_paid": -3034.0,
+      "inventories": 21879.0,
+      "investments_and_associates": 2240.0,
+      "lease_liabilities_current": 28458.0,
+      "net_cfo": 6686.0,
+      "operating_expenses": -17288.0,
+      "operating_profit": 11055.0,
+      "profit_after_tax": 5740.0,
+      "profit_before_tax": 8332.0,
+      "property_plant_equipment": 16816.0,
+      "revenue": 183868.0,
+      "right_of_use_assets": 23725.0,
+      "share_of_profit_associates": 208.0,
+      "short_term_borrowings": 4998.0,
+      "total_assets": 91455.0,
+      "total_equity": 7516.0,
+      "total_liabilities": 65828.0,
+      "trade_payables": 21477.0,
+      "trade_receivables": 228.0
+    },
+    "2021-06-30": {
+      "capex": -2030.0,
+      "cash_and_cash_equivalents": 7950.0,
+      "cash_generated_operations": 16124.0,
+      "depreciation_amortisation": -5336.0,
+      "dividends_paid": -2330.0,
+      "finance_costs": -3095.0,
+      "finance_income": 268.0,
+      "gross_profit": 41213.0,
+      "income_tax_expense": -2241.0,
+      "intangible_assets": 3010.0,
+      "interest_paid": -3157.0,
+      "inventories": 18396.0,
+      "investments_and_associates": 2025.0,
+      "lease_liabilities_current": 24801.0,
+      "net_cfo": 7983.0,
+      "operating_expenses": -14928.0,
+      "operating_profit": 9664.0,
+      "profit_after_tax": 4859.0,
+      "profit_before_tax": 6957.0,
+      "property_plant_equipment": 14374.0,
+      "revenue": 168030.0,
+      "right_of_use_assets": 20520.0,
+      "share_of_profit_associates": 120.0,
+      "short_term_borrowings": 1221.0,
+      "total_assets": 77066.0,
+      "total_equity": 7516.0,
+      "total_liabilities": 55862.0,
+      "trade_payables": 19649.0,
+      "trade_receivables": 206.0
     }
   },
   "rating": {
@@ -874,6 +1066,82 @@
   },
   "provenance": {
     "facts": [
+      {
+        "canonical_key": "capex",
+        "period_end": "2021-06-30",
+        "value_base": -2030.0,
+        "source_refs": [
+          {
+            "page": 12,
+            "line_no": 17,
+            "raw_label": "Investment in property, plant and equipment and other intangible assets to expand operations",
+            "entity_scope": "GROUP",
+            "scale_source": "Rm",
+            "source_label": "Investment in property, plant and equipment and other intangible assets to expand operations",
+            "source_sheet": "CF_GROUP",
+            "mapping_method": "RULE",
+            "mapping_confidence": 0.95,
+            "extraction_cell_ref": "CF_GROUP!row_17"
+          }
+        ]
+      },
+      {
+        "canonical_key": "capex",
+        "period_end": "2022-06-30",
+        "value_base": -3222.0,
+        "source_refs": [
+          {
+            "page": 12,
+            "line_no": 17,
+            "raw_label": "Investment in property, plant and equipment and other intangible assets to expand operations",
+            "entity_scope": "GROUP",
+            "scale_source": "Rm",
+            "source_label": "Investment in property, plant and equipment and other intangible assets to expand operations",
+            "source_sheet": "CF_GROUP",
+            "mapping_method": "RULE",
+            "mapping_confidence": 0.95,
+            "extraction_cell_ref": "CF_GROUP!row_17"
+          }
+        ]
+      },
+      {
+        "canonical_key": "capex",
+        "period_end": "2022-06-30",
+        "value_base": -3222.0,
+        "source_refs": [
+          {
+            "page": 12,
+            "line_no": 16,
+            "raw_label": "Investment in property, plant and equipment and other intangible assets to expand operations",
+            "entity_scope": "GROUP",
+            "scale_source": "Rm",
+            "source_label": "Investment in property, plant and equipment and other intangible assets to expand operations",
+            "source_sheet": "CF_GROUP",
+            "mapping_method": "RULE",
+            "mapping_confidence": 0.95,
+            "extraction_cell_ref": "CF_GROUP!row_16"
+          }
+        ]
+      },
+      {
+        "canonical_key": "capex",
+        "period_end": "2023-06-30",
+        "value_base": -4594.0,
+        "source_refs": [
+          {
+            "page": 12,
+            "line_no": 16,
+            "raw_label": "Investment in property, plant and equipment and other intangible assets to expand operations",
+            "entity_scope": "GROUP",
+            "scale_source": "Rm",
+            "source_label": "Investment in property, plant and equipment and other intangible assets to expand operations",
+            "source_sheet": "CF_GROUP",
+            "mapping_method": "RULE",
+            "mapping_confidence": 0.95,
+            "extraction_cell_ref": "CF_GROUP!row_16"
+          }
+        ]
+      },
       {
         "canonical_key": "capex",
         "period_end": "2023-06-30",
@@ -947,6 +1215,82 @@
             "mapping_method": "RULE",
             "mapping_confidence": 0.95,
             "extraction_cell_ref": "CF_GROUP!row_14"
+          }
+        ]
+      },
+      {
+        "canonical_key": "cash_and_cash_equivalents",
+        "period_end": "2021-06-30",
+        "value_base": 7950.0,
+        "source_refs": [
+          {
+            "page": 11,
+            "line_no": 19,
+            "raw_label": "Cash and cash equivalents",
+            "entity_scope": "GROUP",
+            "scale_source": "Rm",
+            "source_label": "Cash and cash equivalents",
+            "source_sheet": "SFP_GROUP",
+            "mapping_method": "RULE",
+            "mapping_confidence": 0.95,
+            "extraction_cell_ref": "SFP_GROUP!row_19"
+          }
+        ]
+      },
+      {
+        "canonical_key": "cash_and_cash_equivalents",
+        "period_end": "2022-06-30",
+        "value_base": 10665.0,
+        "source_refs": [
+          {
+            "page": 11,
+            "line_no": 19,
+            "raw_label": "Cash and cash equivalents",
+            "entity_scope": "GROUP",
+            "scale_source": "Rm",
+            "source_label": "Cash and cash equivalents",
+            "source_sheet": "SFP_GROUP",
+            "mapping_method": "RULE",
+            "mapping_confidence": 0.95,
+            "extraction_cell_ref": "SFP_GROUP!row_19"
+          }
+        ]
+      },
+      {
+        "canonical_key": "cash_and_cash_equivalents",
+        "period_end": "2022-06-30",
+        "value_base": 10665.0,
+        "source_refs": [
+          {
+            "page": 11,
+            "line_no": 20,
+            "raw_label": "Cash and cash equivalents",
+            "entity_scope": "GROUP",
+            "scale_source": "Rm",
+            "source_label": "Cash and cash equivalents",
+            "source_sheet": "SFP_GROUP",
+            "mapping_method": "RULE",
+            "mapping_confidence": 0.95,
+            "extraction_cell_ref": "SFP_GROUP!row_20"
+          }
+        ]
+      },
+      {
+        "canonical_key": "cash_and_cash_equivalents",
+        "period_end": "2023-06-30",
+        "value_base": 12548.0,
+        "source_refs": [
+          {
+            "page": 11,
+            "line_no": 20,
+            "raw_label": "Cash and cash equivalents",
+            "entity_scope": "GROUP",
+            "scale_source": "Rm",
+            "source_label": "Cash and cash equivalents",
+            "source_sheet": "SFP_GROUP",
+            "mapping_method": "RULE",
+            "mapping_confidence": 0.95,
+            "extraction_cell_ref": "SFP_GROUP!row_20"
           }
         ]
       },
@@ -1028,6 +1372,82 @@
       },
       {
         "canonical_key": "cash_generated_operations",
+        "period_end": "2021-06-30",
+        "value_base": 16124.0,
+        "source_refs": [
+          {
+            "page": 12,
+            "line_no": 8,
+            "raw_label": "Cash generated from operations",
+            "entity_scope": "GROUP",
+            "scale_source": "Rm",
+            "source_label": "Cash generated from operations",
+            "source_sheet": "CF_GROUP",
+            "mapping_method": "RULE",
+            "mapping_confidence": 0.95,
+            "extraction_cell_ref": "CF_GROUP!row_8"
+          }
+        ]
+      },
+      {
+        "canonical_key": "cash_generated_operations",
+        "period_end": "2022-06-30",
+        "value_base": 15005.0,
+        "source_refs": [
+          {
+            "page": 12,
+            "line_no": 8,
+            "raw_label": "Cash generated from operations",
+            "entity_scope": "GROUP",
+            "scale_source": "Rm",
+            "source_label": "Cash generated from operations",
+            "source_sheet": "CF_GROUP",
+            "mapping_method": "RULE",
+            "mapping_confidence": 0.95,
+            "extraction_cell_ref": "CF_GROUP!row_8"
+          }
+        ]
+      },
+      {
+        "canonical_key": "cash_generated_operations",
+        "period_end": "2022-06-30",
+        "value_base": 15005.0,
+        "source_refs": [
+          {
+            "page": 12,
+            "line_no": 7,
+            "raw_label": "Cash generated from operations",
+            "entity_scope": "GROUP",
+            "scale_source": "Rm",
+            "source_label": "Cash generated from operations",
+            "source_sheet": "CF_GROUP",
+            "mapping_method": "RULE",
+            "mapping_confidence": 0.95,
+            "extraction_cell_ref": "CF_GROUP!row_7"
+          }
+        ]
+      },
+      {
+        "canonical_key": "cash_generated_operations",
+        "period_end": "2023-06-30",
+        "value_base": 18237.0,
+        "source_refs": [
+          {
+            "page": 12,
+            "line_no": 7,
+            "raw_label": "Cash generated from operations",
+            "entity_scope": "GROUP",
+            "scale_source": "Rm",
+            "source_label": "Cash generated from operations",
+            "source_sheet": "CF_GROUP",
+            "mapping_method": "RULE",
+            "mapping_confidence": 0.95,
+            "extraction_cell_ref": "CF_GROUP!row_7"
+          }
+        ]
+      },
+      {
+        "canonical_key": "cash_generated_operations",
         "period_end": "2023-06-30",
         "value_base": 18237.0,
         "source_refs": [
@@ -1099,6 +1519,82 @@
             "mapping_method": "RULE",
             "mapping_confidence": 0.95,
             "extraction_cell_ref": "CF_GROUP!row_7"
+          }
+        ]
+      },
+      {
+        "canonical_key": "depreciation_amortisation",
+        "period_end": "2021-06-30",
+        "value_base": -5336.0,
+        "source_refs": [
+          {
+            "page": 11,
+            "line_no": 6,
+            "raw_label": "Depreciation and amortisation",
+            "entity_scope": "GROUP",
+            "scale_source": "Rm",
+            "source_label": "Depreciation and amortisation",
+            "source_sheet": "SCI_GROUP",
+            "mapping_method": "RULE",
+            "mapping_confidence": 0.95,
+            "extraction_cell_ref": "SCI_GROUP!row_6"
+          }
+        ]
+      },
+      {
+        "canonical_key": "depreciation_amortisation",
+        "period_end": "2022-06-30",
+        "value_base": -5406.0,
+        "source_refs": [
+          {
+            "page": 11,
+            "line_no": 6,
+            "raw_label": "Depreciation and amortisation",
+            "entity_scope": "GROUP",
+            "scale_source": "Rm",
+            "source_label": "Depreciation and amortisation",
+            "source_sheet": "SCI_GROUP",
+            "mapping_method": "RULE",
+            "mapping_confidence": 0.95,
+            "extraction_cell_ref": "SCI_GROUP!row_6"
+          }
+        ]
+      },
+      {
+        "canonical_key": "depreciation_amortisation",
+        "period_end": "2022-06-30",
+        "value_base": -5384.0,
+        "source_refs": [
+          {
+            "page": 11,
+            "line_no": 7,
+            "raw_label": "Depreciation and amortisation",
+            "entity_scope": "GROUP",
+            "scale_source": "Rm",
+            "source_label": "Depreciation and amortisation",
+            "source_sheet": "SCI_GROUP",
+            "mapping_method": "RULE",
+            "mapping_confidence": 0.95,
+            "extraction_cell_ref": "SCI_GROUP!row_7"
+          }
+        ]
+      },
+      {
+        "canonical_key": "depreciation_amortisation",
+        "period_end": "2023-06-30",
+        "value_base": -6305.0,
+        "source_refs": [
+          {
+            "page": 11,
+            "line_no": 7,
+            "raw_label": "Depreciation and amortisation",
+            "entity_scope": "GROUP",
+            "scale_source": "Rm",
+            "source_label": "Depreciation and amortisation",
+            "source_sheet": "SCI_GROUP",
+            "mapping_method": "RULE",
+            "mapping_confidence": 0.95,
+            "extraction_cell_ref": "SCI_GROUP!row_7"
           }
         ]
       },
@@ -1180,6 +1676,82 @@
       },
       {
         "canonical_key": "dividends_paid",
+        "period_end": "2021-06-30",
+        "value_base": -2330.0,
+        "source_refs": [
+          {
+            "page": 12,
+            "line_no": 13,
+            "raw_label": "Dividends paid",
+            "entity_scope": "GROUP",
+            "scale_source": "Rm",
+            "source_label": "Dividends paid",
+            "source_sheet": "CF_GROUP",
+            "mapping_method": "RULE",
+            "mapping_confidence": 0.95,
+            "extraction_cell_ref": "CF_GROUP!row_13"
+          }
+        ]
+      },
+      {
+        "canonical_key": "dividends_paid",
+        "period_end": "2022-06-30",
+        "value_base": -3228.0,
+        "source_refs": [
+          {
+            "page": 12,
+            "line_no": 13,
+            "raw_label": "Dividends paid",
+            "entity_scope": "GROUP",
+            "scale_source": "Rm",
+            "source_label": "Dividends paid",
+            "source_sheet": "CF_GROUP",
+            "mapping_method": "RULE",
+            "mapping_confidence": 0.95,
+            "extraction_cell_ref": "CF_GROUP!row_13"
+          }
+        ]
+      },
+      {
+        "canonical_key": "dividends_paid",
+        "period_end": "2022-06-30",
+        "value_base": -3228.0,
+        "source_refs": [
+          {
+            "page": 12,
+            "line_no": 12,
+            "raw_label": "Dividends paid",
+            "entity_scope": "GROUP",
+            "scale_source": "Rm",
+            "source_label": "Dividends paid",
+            "source_sheet": "CF_GROUP",
+            "mapping_method": "RULE",
+            "mapping_confidence": 0.95,
+            "extraction_cell_ref": "CF_GROUP!row_12"
+          }
+        ]
+      },
+      {
+        "canonical_key": "dividends_paid",
+        "period_end": "2023-06-30",
+        "value_base": -3370.0,
+        "source_refs": [
+          {
+            "page": 12,
+            "line_no": 12,
+            "raw_label": "Dividends paid",
+            "entity_scope": "GROUP",
+            "scale_source": "Rm",
+            "source_label": "Dividends paid",
+            "source_sheet": "CF_GROUP",
+            "mapping_method": "RULE",
+            "mapping_confidence": 0.95,
+            "extraction_cell_ref": "CF_GROUP!row_12"
+          }
+        ]
+      },
+      {
+        "canonical_key": "dividends_paid",
         "period_end": "2023-06-30",
         "value_base": -3370.0,
         "source_refs": [
@@ -1251,6 +1823,82 @@
             "mapping_method": "RULE",
             "mapping_confidence": 0.95,
             "extraction_cell_ref": "CF_GROUP!row_11"
+          }
+        ]
+      },
+      {
+        "canonical_key": "finance_costs",
+        "period_end": "2021-06-30",
+        "value_base": -3095.0,
+        "source_refs": [
+          {
+            "page": 11,
+            "line_no": 16,
+            "raw_label": "Finance costs",
+            "entity_scope": "GROUP",
+            "scale_source": "Rm",
+            "source_label": "Finance costs",
+            "source_sheet": "SCI_GROUP",
+            "mapping_method": "RULE",
+            "mapping_confidence": 0.95,
+            "extraction_cell_ref": "SCI_GROUP!row_16"
+          }
+        ]
+      },
+      {
+        "canonical_key": "finance_costs",
+        "period_end": "2022-06-30",
+        "value_base": -2999.0,
+        "source_refs": [
+          {
+            "page": 11,
+            "line_no": 16,
+            "raw_label": "Finance costs",
+            "entity_scope": "GROUP",
+            "scale_source": "Rm",
+            "source_label": "Finance costs",
+            "source_sheet": "SCI_GROUP",
+            "mapping_method": "RULE",
+            "mapping_confidence": 0.95,
+            "extraction_cell_ref": "SCI_GROUP!row_16"
+          }
+        ]
+      },
+      {
+        "canonical_key": "finance_costs",
+        "period_end": "2022-06-30",
+        "value_base": -2993.0,
+        "source_refs": [
+          {
+            "page": 11,
+            "line_no": 17,
+            "raw_label": "Finance costs",
+            "entity_scope": "GROUP",
+            "scale_source": "Rm",
+            "source_label": "Finance costs",
+            "source_sheet": "SCI_GROUP",
+            "mapping_method": "RULE",
+            "mapping_confidence": 0.95,
+            "extraction_cell_ref": "SCI_GROUP!row_17"
+          }
+        ]
+      },
+      {
+        "canonical_key": "finance_costs",
+        "period_end": "2023-06-30",
+        "value_base": -3665.0,
+        "source_refs": [
+          {
+            "page": 11,
+            "line_no": 17,
+            "raw_label": "Finance costs",
+            "entity_scope": "GROUP",
+            "scale_source": "Rm",
+            "source_label": "Finance costs",
+            "source_sheet": "SCI_GROUP",
+            "mapping_method": "RULE",
+            "mapping_confidence": 0.95,
+            "extraction_cell_ref": "SCI_GROUP!row_17"
           }
         ]
       },
@@ -1332,6 +1980,82 @@
       },
       {
         "canonical_key": "finance_income",
+        "period_end": "2021-06-30",
+        "value_base": 268.0,
+        "source_refs": [
+          {
+            "page": 11,
+            "line_no": 15,
+            "raw_label": "Interest received from bank account balances",
+            "entity_scope": "GROUP",
+            "scale_source": "Rm",
+            "source_label": "Interest received from bank account balances",
+            "source_sheet": "SCI_GROUP",
+            "mapping_method": "REGEX",
+            "mapping_confidence": 0.85,
+            "extraction_cell_ref": "SCI_GROUP!row_15"
+          }
+        ]
+      },
+      {
+        "canonical_key": "finance_income",
+        "period_end": "2022-06-30",
+        "value_base": 270.0,
+        "source_refs": [
+          {
+            "page": 11,
+            "line_no": 15,
+            "raw_label": "Interest received from bank account balances",
+            "entity_scope": "GROUP",
+            "scale_source": "Rm",
+            "source_label": "Interest received from bank account balances",
+            "source_sheet": "SCI_GROUP",
+            "mapping_method": "REGEX",
+            "mapping_confidence": 0.85,
+            "extraction_cell_ref": "SCI_GROUP!row_15"
+          }
+        ]
+      },
+      {
+        "canonical_key": "finance_income",
+        "period_end": "2022-06-30",
+        "value_base": 270.0,
+        "source_refs": [
+          {
+            "page": 11,
+            "line_no": 16,
+            "raw_label": "Interest received from bank account balances",
+            "entity_scope": "GROUP",
+            "scale_source": "Rm",
+            "source_label": "Interest received from bank account balances",
+            "source_sheet": "SCI_GROUP",
+            "mapping_method": "REGEX",
+            "mapping_confidence": 0.85,
+            "extraction_cell_ref": "SCI_GROUP!row_16"
+          }
+        ]
+      },
+      {
+        "canonical_key": "finance_income",
+        "period_end": "2023-06-30",
+        "value_base": 453.0,
+        "source_refs": [
+          {
+            "page": 11,
+            "line_no": 16,
+            "raw_label": "Interest received from bank account balances",
+            "entity_scope": "GROUP",
+            "scale_source": "Rm",
+            "source_label": "Interest received from bank account balances",
+            "source_sheet": "SCI_GROUP",
+            "mapping_method": "REGEX",
+            "mapping_confidence": 0.85,
+            "extraction_cell_ref": "SCI_GROUP!row_16"
+          }
+        ]
+      },
+      {
+        "canonical_key": "finance_income",
         "period_end": "2023-06-30",
         "value_base": 453.0,
         "source_refs": [
@@ -1403,6 +2127,82 @@
             "mapping_method": "REGEX",
             "mapping_confidence": 0.85,
             "extraction_cell_ref": "SCI_GROUP!row_16"
+          }
+        ]
+      },
+      {
+        "canonical_key": "gross_profit",
+        "period_end": "2021-06-30",
+        "value_base": 41213.0,
+        "source_refs": [
+          {
+            "page": 11,
+            "line_no": 3,
+            "raw_label": "GROSS PROFIT",
+            "entity_scope": "GROUP",
+            "scale_source": "Rm",
+            "source_label": "GROSS PROFIT",
+            "source_sheet": "SCI_GROUP",
+            "mapping_method": "RULE",
+            "mapping_confidence": 0.95,
+            "extraction_cell_ref": "SCI_GROUP!row_3"
+          }
+        ]
+      },
+      {
+        "canonical_key": "gross_profit",
+        "period_end": "2022-06-30",
+        "value_base": 45061.0,
+        "source_refs": [
+          {
+            "page": 11,
+            "line_no": 3,
+            "raw_label": "GROSS PROFIT",
+            "entity_scope": "GROUP",
+            "scale_source": "Rm",
+            "source_label": "GROSS PROFIT",
+            "source_sheet": "SCI_GROUP",
+            "mapping_method": "RULE",
+            "mapping_confidence": 0.95,
+            "extraction_cell_ref": "SCI_GROUP!row_3"
+          }
+        ]
+      },
+      {
+        "canonical_key": "gross_profit",
+        "period_end": "2022-06-30",
+        "value_base": 45022.0,
+        "source_refs": [
+          {
+            "page": 11,
+            "line_no": 3,
+            "raw_label": "Gross profit",
+            "entity_scope": "GROUP",
+            "scale_source": "Rm",
+            "source_label": "Gross profit",
+            "source_sheet": "SCI_GROUP",
+            "mapping_method": "RULE",
+            "mapping_confidence": 0.95,
+            "extraction_cell_ref": "SCI_GROUP!row_3"
+          }
+        ]
+      },
+      {
+        "canonical_key": "gross_profit",
+        "period_end": "2023-06-30",
+        "value_base": 51706.0,
+        "source_refs": [
+          {
+            "page": 11,
+            "line_no": 3,
+            "raw_label": "Gross profit",
+            "entity_scope": "GROUP",
+            "scale_source": "Rm",
+            "source_label": "Gross profit",
+            "source_sheet": "SCI_GROUP",
+            "mapping_method": "RULE",
+            "mapping_confidence": 0.95,
+            "extraction_cell_ref": "SCI_GROUP!row_3"
           }
         ]
       },
@@ -1484,6 +2284,82 @@
       },
       {
         "canonical_key": "income_tax_expense",
+        "period_end": "2021-06-30",
+        "value_base": -2241.0,
+        "source_refs": [
+          {
+            "page": 11,
+            "line_no": 19,
+            "raw_label": "Income tax expense",
+            "entity_scope": "GROUP",
+            "scale_source": "Rm",
+            "source_label": "Income tax expense",
+            "source_sheet": "SCI_GROUP",
+            "mapping_method": "RULE",
+            "mapping_confidence": 0.95,
+            "extraction_cell_ref": "SCI_GROUP!row_19"
+          }
+        ]
+      },
+      {
+        "canonical_key": "income_tax_expense",
+        "period_end": "2022-06-30",
+        "value_base": -2556.0,
+        "source_refs": [
+          {
+            "page": 11,
+            "line_no": 19,
+            "raw_label": "Income tax expense",
+            "entity_scope": "GROUP",
+            "scale_source": "Rm",
+            "source_label": "Income tax expense",
+            "source_sheet": "SCI_GROUP",
+            "mapping_method": "RULE",
+            "mapping_confidence": 0.95,
+            "extraction_cell_ref": "SCI_GROUP!row_19"
+          }
+        ]
+      },
+      {
+        "canonical_key": "income_tax_expense",
+        "period_end": "2022-06-30",
+        "value_base": -2553.0,
+        "source_refs": [
+          {
+            "page": 11,
+            "line_no": 19,
+            "raw_label": "Income tax expense",
+            "entity_scope": "GROUP",
+            "scale_source": "Rm",
+            "source_label": "Income tax expense",
+            "source_sheet": "SCI_GROUP",
+            "mapping_method": "RULE",
+            "mapping_confidence": 0.95,
+            "extraction_cell_ref": "SCI_GROUP!row_19"
+          }
+        ]
+      },
+      {
+        "canonical_key": "income_tax_expense",
+        "period_end": "2023-06-30",
+        "value_base": -2812.0,
+        "source_refs": [
+          {
+            "page": 11,
+            "line_no": 19,
+            "raw_label": "Income tax expense",
+            "entity_scope": "GROUP",
+            "scale_source": "Rm",
+            "source_label": "Income tax expense",
+            "source_sheet": "SCI_GROUP",
+            "mapping_method": "RULE",
+            "mapping_confidence": 0.95,
+            "extraction_cell_ref": "SCI_GROUP!row_19"
+          }
+        ]
+      },
+      {
+        "canonical_key": "income_tax_expense",
         "period_end": "2023-06-30",
         "value_base": -2812.0,
         "source_refs": [
@@ -1555,6 +2431,82 @@
             "mapping_method": "RULE",
             "mapping_confidence": 0.95,
             "extraction_cell_ref": "SCI_GROUP!row_19"
+          }
+        ]
+      },
+      {
+        "canonical_key": "intangible_assets",
+        "period_end": "2021-06-30",
+        "value_base": 3010.0,
+        "source_refs": [
+          {
+            "page": 11,
+            "line_no": 4,
+            "raw_label": "Intangible assets",
+            "entity_scope": "GROUP",
+            "scale_source": "Rm",
+            "source_label": "Intangible assets",
+            "source_sheet": "SFP_GROUP",
+            "mapping_method": "RULE",
+            "mapping_confidence": 0.95,
+            "extraction_cell_ref": "SFP_GROUP!row_4"
+          }
+        ]
+      },
+      {
+        "canonical_key": "intangible_assets",
+        "period_end": "2022-06-30",
+        "value_base": 3561.0,
+        "source_refs": [
+          {
+            "page": 11,
+            "line_no": 4,
+            "raw_label": "Intangible assets",
+            "entity_scope": "GROUP",
+            "scale_source": "Rm",
+            "source_label": "Intangible assets",
+            "source_sheet": "SFP_GROUP",
+            "mapping_method": "RULE",
+            "mapping_confidence": 0.95,
+            "extraction_cell_ref": "SFP_GROUP!row_4"
+          }
+        ]
+      },
+      {
+        "canonical_key": "intangible_assets",
+        "period_end": "2022-06-30",
+        "value_base": 3561.0,
+        "source_refs": [
+          {
+            "page": 11,
+            "line_no": 4,
+            "raw_label": "Intangible assets",
+            "entity_scope": "GROUP",
+            "scale_source": "Rm",
+            "source_label": "Intangible assets",
+            "source_sheet": "SFP_GROUP",
+            "mapping_method": "RULE",
+            "mapping_confidence": 0.95,
+            "extraction_cell_ref": "SFP_GROUP!row_4"
+          }
+        ]
+      },
+      {
+        "canonical_key": "intangible_assets",
+        "period_end": "2023-06-30",
+        "value_base": 4225.0,
+        "source_refs": [
+          {
+            "page": 11,
+            "line_no": 4,
+            "raw_label": "Intangible assets",
+            "entity_scope": "GROUP",
+            "scale_source": "Rm",
+            "source_label": "Intangible assets",
+            "source_sheet": "SFP_GROUP",
+            "mapping_method": "RULE",
+            "mapping_confidence": 0.95,
+            "extraction_cell_ref": "SFP_GROUP!row_4"
           }
         ]
       },
@@ -1636,6 +2588,82 @@
       },
       {
         "canonical_key": "interest_paid",
+        "period_end": "2021-06-30",
+        "value_base": -3157.0,
+        "source_refs": [
+          {
+            "page": 12,
+            "line_no": 11,
+            "raw_label": "Interest paid",
+            "entity_scope": "GROUP",
+            "scale_source": "Rm",
+            "source_label": "Interest paid",
+            "source_sheet": "CF_GROUP",
+            "mapping_method": "RULE",
+            "mapping_confidence": 0.95,
+            "extraction_cell_ref": "CF_GROUP!row_11"
+          }
+        ]
+      },
+      {
+        "canonical_key": "interest_paid",
+        "period_end": "2022-06-30",
+        "value_base": -3034.0,
+        "source_refs": [
+          {
+            "page": 12,
+            "line_no": 11,
+            "raw_label": "Interest paid",
+            "entity_scope": "GROUP",
+            "scale_source": "Rm",
+            "source_label": "Interest paid",
+            "source_sheet": "CF_GROUP",
+            "mapping_method": "RULE",
+            "mapping_confidence": 0.95,
+            "extraction_cell_ref": "CF_GROUP!row_11"
+          }
+        ]
+      },
+      {
+        "canonical_key": "interest_paid",
+        "period_end": "2022-06-30",
+        "value_base": -3034.0,
+        "source_refs": [
+          {
+            "page": 12,
+            "line_no": 10,
+            "raw_label": "Interest paid",
+            "entity_scope": "GROUP",
+            "scale_source": "Rm",
+            "source_label": "Interest paid",
+            "source_sheet": "CF_GROUP",
+            "mapping_method": "RULE",
+            "mapping_confidence": 0.95,
+            "extraction_cell_ref": "CF_GROUP!row_10"
+          }
+        ]
+      },
+      {
+        "canonical_key": "interest_paid",
+        "period_end": "2023-06-30",
+        "value_base": -3664.0,
+        "source_refs": [
+          {
+            "page": 12,
+            "line_no": 10,
+            "raw_label": "Interest paid",
+            "entity_scope": "GROUP",
+            "scale_source": "Rm",
+            "source_label": "Interest paid",
+            "source_sheet": "CF_GROUP",
+            "mapping_method": "RULE",
+            "mapping_confidence": 0.95,
+            "extraction_cell_ref": "CF_GROUP!row_10"
+          }
+        ]
+      },
+      {
+        "canonical_key": "interest_paid",
         "period_end": "2023-06-30",
         "value_base": -3664.0,
         "source_refs": [
@@ -1707,6 +2735,82 @@
             "mapping_method": "RULE",
             "mapping_confidence": 0.95,
             "extraction_cell_ref": "CF_GROUP!row_9"
+          }
+        ]
+      },
+      {
+        "canonical_key": "inventories",
+        "period_end": "2021-06-30",
+        "value_base": 18396.0,
+        "source_refs": [
+          {
+            "page": 11,
+            "line_no": 12,
+            "raw_label": "Inventories",
+            "entity_scope": "GROUP",
+            "scale_source": "Rm",
+            "source_label": "Inventories",
+            "source_sheet": "SFP_GROUP",
+            "mapping_method": "RULE",
+            "mapping_confidence": 0.95,
+            "extraction_cell_ref": "SFP_GROUP!row_12"
+          }
+        ]
+      },
+      {
+        "canonical_key": "inventories",
+        "period_end": "2022-06-30",
+        "value_base": 21879.0,
+        "source_refs": [
+          {
+            "page": 11,
+            "line_no": 12,
+            "raw_label": "Inventories",
+            "entity_scope": "GROUP",
+            "scale_source": "Rm",
+            "source_label": "Inventories",
+            "source_sheet": "SFP_GROUP",
+            "mapping_method": "RULE",
+            "mapping_confidence": 0.95,
+            "extraction_cell_ref": "SFP_GROUP!row_12"
+          }
+        ]
+      },
+      {
+        "canonical_key": "inventories",
+        "period_end": "2022-06-30",
+        "value_base": 21879.0,
+        "source_refs": [
+          {
+            "page": 11,
+            "line_no": 13,
+            "raw_label": "Inventories",
+            "entity_scope": "GROUP",
+            "scale_source": "Rm",
+            "source_label": "Inventories",
+            "source_sheet": "SFP_GROUP",
+            "mapping_method": "RULE",
+            "mapping_confidence": 0.95,
+            "extraction_cell_ref": "SFP_GROUP!row_13"
+          }
+        ]
+      },
+      {
+        "canonical_key": "inventories",
+        "period_end": "2023-06-30",
+        "value_base": 25090.0,
+        "source_refs": [
+          {
+            "page": 11,
+            "line_no": 13,
+            "raw_label": "Inventories",
+            "entity_scope": "GROUP",
+            "scale_source": "Rm",
+            "source_label": "Inventories",
+            "source_sheet": "SFP_GROUP",
+            "mapping_method": "RULE",
+            "mapping_confidence": 0.95,
+            "extraction_cell_ref": "SFP_GROUP!row_13"
           }
         ]
       },
@@ -1845,6 +2949,82 @@
       },
       {
         "canonical_key": "investments_and_associates",
+        "period_end": "2021-06-30",
+        "value_base": 2025.0,
+        "source_refs": [
+          {
+            "page": 11,
+            "line_no": 5,
+            "raw_label": "Equity accounted investments",
+            "entity_scope": "GROUP",
+            "scale_source": "Rm",
+            "source_label": "Equity accounted investments",
+            "source_sheet": "SFP_GROUP",
+            "mapping_method": "RULE",
+            "mapping_confidence": 0.95,
+            "extraction_cell_ref": "SFP_GROUP!row_5"
+          }
+        ]
+      },
+      {
+        "canonical_key": "investments_and_associates",
+        "period_end": "2022-06-30",
+        "value_base": 2240.0,
+        "source_refs": [
+          {
+            "page": 11,
+            "line_no": 5,
+            "raw_label": "Equity accounted investments",
+            "entity_scope": "GROUP",
+            "scale_source": "Rm",
+            "source_label": "Equity accounted investments",
+            "source_sheet": "SFP_GROUP",
+            "mapping_method": "RULE",
+            "mapping_confidence": 0.95,
+            "extraction_cell_ref": "SFP_GROUP!row_5"
+          }
+        ]
+      },
+      {
+        "canonical_key": "investments_and_associates",
+        "period_end": "2022-06-30",
+        "value_base": 2240.0,
+        "source_refs": [
+          {
+            "page": 11,
+            "line_no": 5,
+            "raw_label": "Equity accounted investments",
+            "entity_scope": "GROUP",
+            "scale_source": "Rm",
+            "source_label": "Equity accounted investments",
+            "source_sheet": "SFP_GROUP",
+            "mapping_method": "RULE",
+            "mapping_confidence": 0.95,
+            "extraction_cell_ref": "SFP_GROUP!row_5"
+          }
+        ]
+      },
+      {
+        "canonical_key": "investments_and_associates",
+        "period_end": "2023-06-30",
+        "value_base": 2312.0,
+        "source_refs": [
+          {
+            "page": 11,
+            "line_no": 5,
+            "raw_label": "Equity accounted investments",
+            "entity_scope": "GROUP",
+            "scale_source": "Rm",
+            "source_label": "Equity accounted investments",
+            "source_sheet": "SFP_GROUP",
+            "mapping_method": "RULE",
+            "mapping_confidence": 0.95,
+            "extraction_cell_ref": "SFP_GROUP!row_5"
+          }
+        ]
+      },
+      {
+        "canonical_key": "investments_and_associates",
         "period_end": "2023-06-30",
         "value_base": 2312.0,
         "source_refs": [
@@ -1916,6 +3096,82 @@
             "mapping_method": "RULE",
             "mapping_confidence": 0.95,
             "extraction_cell_ref": "SFP_GROUP!row_6"
+          }
+        ]
+      },
+      {
+        "canonical_key": "lease_liabilities_current",
+        "period_end": "2021-06-30",
+        "value_base": 24801.0,
+        "source_refs": [
+          {
+            "page": 11,
+            "line_no": 30,
+            "raw_label": "Lease liabilities",
+            "entity_scope": "GROUP",
+            "scale_source": "Rm",
+            "source_label": "Lease liabilities",
+            "source_sheet": "SFP_GROUP",
+            "mapping_method": "RULE",
+            "mapping_confidence": 0.95,
+            "extraction_cell_ref": "SFP_GROUP!row_30"
+          }
+        ]
+      },
+      {
+        "canonical_key": "lease_liabilities_current",
+        "period_end": "2022-06-30",
+        "value_base": 28458.0,
+        "source_refs": [
+          {
+            "page": 11,
+            "line_no": 30,
+            "raw_label": "Lease liabilities",
+            "entity_scope": "GROUP",
+            "scale_source": "Rm",
+            "source_label": "Lease liabilities",
+            "source_sheet": "SFP_GROUP",
+            "mapping_method": "RULE",
+            "mapping_confidence": 0.95,
+            "extraction_cell_ref": "SFP_GROUP!row_30"
+          }
+        ]
+      },
+      {
+        "canonical_key": "lease_liabilities_current",
+        "period_end": "2022-06-30",
+        "value_base": 28458.0,
+        "source_refs": [
+          {
+            "page": 11,
+            "line_no": 31,
+            "raw_label": "Lease liabilities",
+            "entity_scope": "GROUP",
+            "scale_source": "Rm",
+            "source_label": "Lease liabilities",
+            "source_sheet": "SFP_GROUP",
+            "mapping_method": "RULE",
+            "mapping_confidence": 0.95,
+            "extraction_cell_ref": "SFP_GROUP!row_31"
+          }
+        ]
+      },
+      {
+        "canonical_key": "lease_liabilities_current",
+        "period_end": "2023-06-30",
+        "value_base": 32482.0,
+        "source_refs": [
+          {
+            "page": 11,
+            "line_no": 31,
+            "raw_label": "Lease liabilities",
+            "entity_scope": "GROUP",
+            "scale_source": "Rm",
+            "source_label": "Lease liabilities",
+            "source_sheet": "SFP_GROUP",
+            "mapping_method": "RULE",
+            "mapping_confidence": 0.95,
+            "extraction_cell_ref": "SFP_GROUP!row_31"
           }
         ]
       },
@@ -1997,6 +3253,82 @@
       },
       {
         "canonical_key": "net_cfo",
+        "period_end": "2021-06-30",
+        "value_base": 7983.0,
+        "source_refs": [
+          {
+            "page": 12,
+            "line_no": 3,
+            "raw_label": "CASH FLOWS FROM OPERATING ACTIVITIES",
+            "entity_scope": "GROUP",
+            "scale_source": "Rm",
+            "source_label": "CASH FLOWS FROM OPERATING ACTIVITIES",
+            "source_sheet": "CF_GROUP",
+            "mapping_method": "RULE",
+            "mapping_confidence": 0.95,
+            "extraction_cell_ref": "CF_GROUP!row_3"
+          }
+        ]
+      },
+      {
+        "canonical_key": "net_cfo",
+        "period_end": "2022-06-30",
+        "value_base": 6686.0,
+        "source_refs": [
+          {
+            "page": 12,
+            "line_no": 3,
+            "raw_label": "CASH FLOWS FROM OPERATING ACTIVITIES",
+            "entity_scope": "GROUP",
+            "scale_source": "Rm",
+            "source_label": "CASH FLOWS FROM OPERATING ACTIVITIES",
+            "source_sheet": "CF_GROUP",
+            "mapping_method": "RULE",
+            "mapping_confidence": 0.95,
+            "extraction_cell_ref": "CF_GROUP!row_3"
+          }
+        ]
+      },
+      {
+        "canonical_key": "net_cfo",
+        "period_end": "2022-06-30",
+        "value_base": 6686.0,
+        "source_refs": [
+          {
+            "page": 12,
+            "line_no": 2,
+            "raw_label": "Cash flows from operating activities",
+            "entity_scope": "GROUP",
+            "scale_source": "Rm",
+            "source_label": "Cash flows from operating activities",
+            "source_sheet": "CF_GROUP",
+            "mapping_method": "RULE",
+            "mapping_confidence": 0.95,
+            "extraction_cell_ref": "CF_GROUP!row_2"
+          }
+        ]
+      },
+      {
+        "canonical_key": "net_cfo",
+        "period_end": "2023-06-30",
+        "value_base": 9831.0,
+        "source_refs": [
+          {
+            "page": 12,
+            "line_no": 2,
+            "raw_label": "Cash flows from operating activities",
+            "entity_scope": "GROUP",
+            "scale_source": "Rm",
+            "source_label": "Cash flows from operating activities",
+            "source_sheet": "CF_GROUP",
+            "mapping_method": "RULE",
+            "mapping_confidence": 0.95,
+            "extraction_cell_ref": "CF_GROUP!row_2"
+          }
+        ]
+      },
+      {
+        "canonical_key": "net_cfo",
         "period_end": "2023-06-30",
         "value_base": 9831.0,
         "source_refs": [
@@ -2068,6 +3400,82 @@
             "mapping_method": "RULE",
             "mapping_confidence": 0.95,
             "extraction_cell_ref": "CF_GROUP!row_2"
+          }
+        ]
+      },
+      {
+        "canonical_key": "operating_expenses",
+        "period_end": "2021-06-30",
+        "value_base": -14928.0,
+        "source_refs": [
+          {
+            "page": 11,
+            "line_no": 9,
+            "raw_label": "Other operating expenses",
+            "entity_scope": "GROUP",
+            "scale_source": "Rm",
+            "source_label": "Other operating expenses",
+            "source_sheet": "SCI_GROUP",
+            "mapping_method": "RULE",
+            "mapping_confidence": 0.95,
+            "extraction_cell_ref": "SCI_GROUP!row_9"
+          }
+        ]
+      },
+      {
+        "canonical_key": "operating_expenses",
+        "period_end": "2022-06-30",
+        "value_base": -17326.0,
+        "source_refs": [
+          {
+            "page": 11,
+            "line_no": 9,
+            "raw_label": "Other operating expenses",
+            "entity_scope": "GROUP",
+            "scale_source": "Rm",
+            "source_label": "Other operating expenses",
+            "source_sheet": "SCI_GROUP",
+            "mapping_method": "RULE",
+            "mapping_confidence": 0.95,
+            "extraction_cell_ref": "SCI_GROUP!row_9"
+          }
+        ]
+      },
+      {
+        "canonical_key": "operating_expenses",
+        "period_end": "2022-06-30",
+        "value_base": -17288.0,
+        "source_refs": [
+          {
+            "page": 11,
+            "line_no": 10,
+            "raw_label": "Other operating expenses",
+            "entity_scope": "GROUP",
+            "scale_source": "Rm",
+            "source_label": "Other operating expenses",
+            "source_sheet": "SCI_GROUP",
+            "mapping_method": "RULE",
+            "mapping_confidence": 0.95,
+            "extraction_cell_ref": "SCI_GROUP!row_10"
+          }
+        ]
+      },
+      {
+        "canonical_key": "operating_expenses",
+        "period_end": "2023-06-30",
+        "value_base": -21019.0,
+        "source_refs": [
+          {
+            "page": 11,
+            "line_no": 10,
+            "raw_label": "Other operating expenses",
+            "entity_scope": "GROUP",
+            "scale_source": "Rm",
+            "source_label": "Other operating expenses",
+            "source_sheet": "SCI_GROUP",
+            "mapping_method": "RULE",
+            "mapping_confidence": 0.95,
+            "extraction_cell_ref": "SCI_GROUP!row_10"
           }
         ]
       },
@@ -2149,6 +3557,82 @@
       },
       {
         "canonical_key": "operating_profit",
+        "period_end": "2021-06-30",
+        "value_base": 9664.0,
+        "source_refs": [
+          {
+            "page": 11,
+            "line_no": 14,
+            "raw_label": "OPERATING PROFIT",
+            "entity_scope": "GROUP",
+            "scale_source": "Rm",
+            "source_label": "OPERATING PROFIT",
+            "source_sheet": "SCI_GROUP",
+            "mapping_method": "RULE",
+            "mapping_confidence": 0.95,
+            "extraction_cell_ref": "SCI_GROUP!row_14"
+          }
+        ]
+      },
+      {
+        "canonical_key": "operating_profit",
+        "period_end": "2022-06-30",
+        "value_base": 10807.0,
+        "source_refs": [
+          {
+            "page": 11,
+            "line_no": 14,
+            "raw_label": "OPERATING PROFIT",
+            "entity_scope": "GROUP",
+            "scale_source": "Rm",
+            "source_label": "OPERATING PROFIT",
+            "source_sheet": "SCI_GROUP",
+            "mapping_method": "RULE",
+            "mapping_confidence": 0.95,
+            "extraction_cell_ref": "SCI_GROUP!row_14"
+          }
+        ]
+      },
+      {
+        "canonical_key": "operating_profit",
+        "period_end": "2022-06-30",
+        "value_base": 11055.0,
+        "source_refs": [
+          {
+            "page": 11,
+            "line_no": 15,
+            "raw_label": "Operating profit",
+            "entity_scope": "GROUP",
+            "scale_source": "Rm",
+            "source_label": "Operating profit",
+            "source_sheet": "SCI_GROUP",
+            "mapping_method": "RULE",
+            "mapping_confidence": 0.95,
+            "extraction_cell_ref": "SCI_GROUP!row_15"
+          }
+        ]
+      },
+      {
+        "canonical_key": "operating_profit",
+        "period_end": "2023-06-30",
+        "value_base": 12344.0,
+        "source_refs": [
+          {
+            "page": 11,
+            "line_no": 15,
+            "raw_label": "Operating profit",
+            "entity_scope": "GROUP",
+            "scale_source": "Rm",
+            "source_label": "Operating profit",
+            "source_sheet": "SCI_GROUP",
+            "mapping_method": "RULE",
+            "mapping_confidence": 0.95,
+            "extraction_cell_ref": "SCI_GROUP!row_15"
+          }
+        ]
+      },
+      {
+        "canonical_key": "operating_profit",
         "period_end": "2023-06-30",
         "value_base": 12347.0,
         "source_refs": [
@@ -2220,6 +3704,82 @@
             "mapping_method": "RULE",
             "mapping_confidence": 0.95,
             "extraction_cell_ref": "SCI_GROUP!row_15"
+          }
+        ]
+      },
+      {
+        "canonical_key": "profit_after_tax",
+        "period_end": "2021-06-30",
+        "value_base": 4859.0,
+        "source_refs": [
+          {
+            "page": 11,
+            "line_no": 22,
+            "raw_label": "PROFIT FOR THE YEAR",
+            "entity_scope": "GROUP",
+            "scale_source": "Rm",
+            "source_label": "PROFIT FOR THE YEAR",
+            "source_sheet": "SCI_GROUP",
+            "mapping_method": "RULE",
+            "mapping_confidence": 0.95,
+            "extraction_cell_ref": "SCI_GROUP!row_22"
+          }
+        ]
+      },
+      {
+        "canonical_key": "profit_after_tax",
+        "period_end": "2022-06-30",
+        "value_base": 5740.0,
+        "source_refs": [
+          {
+            "page": 11,
+            "line_no": 22,
+            "raw_label": "PROFIT FOR THE YEAR",
+            "entity_scope": "GROUP",
+            "scale_source": "Rm",
+            "source_label": "PROFIT FOR THE YEAR",
+            "source_sheet": "SCI_GROUP",
+            "mapping_method": "RULE",
+            "mapping_confidence": 0.95,
+            "extraction_cell_ref": "SCI_GROUP!row_22"
+          }
+        ]
+      },
+      {
+        "canonical_key": "profit_after_tax",
+        "period_end": "2022-06-30",
+        "value_base": 5740.0,
+        "source_refs": [
+          {
+            "page": 11,
+            "line_no": 22,
+            "raw_label": "Profit for the year",
+            "entity_scope": "GROUP",
+            "scale_source": "Rm",
+            "source_label": "Profit for the year",
+            "source_sheet": "SCI_GROUP",
+            "mapping_method": "RULE",
+            "mapping_confidence": 0.95,
+            "extraction_cell_ref": "SCI_GROUP!row_22"
+          }
+        ]
+      },
+      {
+        "canonical_key": "profit_after_tax",
+        "period_end": "2023-06-30",
+        "value_base": 5901.0,
+        "source_refs": [
+          {
+            "page": 11,
+            "line_no": 22,
+            "raw_label": "Profit for the year",
+            "entity_scope": "GROUP",
+            "scale_source": "Rm",
+            "source_label": "Profit for the year",
+            "source_sheet": "SCI_GROUP",
+            "mapping_method": "RULE",
+            "mapping_confidence": 0.95,
+            "extraction_cell_ref": "SCI_GROUP!row_22"
           }
         ]
       },
@@ -2301,6 +3861,82 @@
       },
       {
         "canonical_key": "profit_before_tax",
+        "period_end": "2021-06-30",
+        "value_base": 6957.0,
+        "source_refs": [
+          {
+            "page": 11,
+            "line_no": 18,
+            "raw_label": "PROFIT BEFORE INCOME TAX",
+            "entity_scope": "GROUP",
+            "scale_source": "Rm",
+            "source_label": "PROFIT BEFORE INCOME TAX",
+            "source_sheet": "SCI_GROUP",
+            "mapping_method": "RULE",
+            "mapping_confidence": 0.95,
+            "extraction_cell_ref": "SCI_GROUP!row_18"
+          }
+        ]
+      },
+      {
+        "canonical_key": "profit_before_tax",
+        "period_end": "2022-06-30",
+        "value_base": 8286.0,
+        "source_refs": [
+          {
+            "page": 11,
+            "line_no": 18,
+            "raw_label": "PROFIT BEFORE INCOME TAX",
+            "entity_scope": "GROUP",
+            "scale_source": "Rm",
+            "source_label": "PROFIT BEFORE INCOME TAX",
+            "source_sheet": "SCI_GROUP",
+            "mapping_method": "RULE",
+            "mapping_confidence": 0.95,
+            "extraction_cell_ref": "SCI_GROUP!row_18"
+          }
+        ]
+      },
+      {
+        "canonical_key": "profit_before_tax",
+        "period_end": "2022-06-30",
+        "value_base": 8332.0,
+        "source_refs": [
+          {
+            "page": 11,
+            "line_no": 18,
+            "raw_label": "Profit before income tax",
+            "entity_scope": "GROUP",
+            "scale_source": "Rm",
+            "source_label": "Profit before income tax",
+            "source_sheet": "SCI_GROUP",
+            "mapping_method": "RULE",
+            "mapping_confidence": 0.95,
+            "extraction_cell_ref": "SCI_GROUP!row_18"
+          }
+        ]
+      },
+      {
+        "canonical_key": "profit_before_tax",
+        "period_end": "2023-06-30",
+        "value_base": 9132.0,
+        "source_refs": [
+          {
+            "page": 11,
+            "line_no": 18,
+            "raw_label": "Profit before income tax",
+            "entity_scope": "GROUP",
+            "scale_source": "Rm",
+            "source_label": "Profit before income tax",
+            "source_sheet": "SCI_GROUP",
+            "mapping_method": "RULE",
+            "mapping_confidence": 0.95,
+            "extraction_cell_ref": "SCI_GROUP!row_18"
+          }
+        ]
+      },
+      {
+        "canonical_key": "profit_before_tax",
         "period_end": "2023-06-30",
         "value_base": 9132.0,
         "source_refs": [
@@ -2372,6 +4008,82 @@
             "mapping_method": "RULE",
             "mapping_confidence": 0.95,
             "extraction_cell_ref": "SCI_GROUP!row_18"
+          }
+        ]
+      },
+      {
+        "canonical_key": "property_plant_equipment",
+        "period_end": "2021-06-30",
+        "value_base": 14374.0,
+        "source_refs": [
+          {
+            "page": 11,
+            "line_no": 2,
+            "raw_label": "Property, plant and equipment",
+            "entity_scope": "GROUP",
+            "scale_source": "Rm",
+            "source_label": "Property, plant and equipment",
+            "source_sheet": "SFP_GROUP",
+            "mapping_method": "RULE",
+            "mapping_confidence": 0.95,
+            "extraction_cell_ref": "SFP_GROUP!row_2"
+          }
+        ]
+      },
+      {
+        "canonical_key": "property_plant_equipment",
+        "period_end": "2022-06-30",
+        "value_base": 16816.0,
+        "source_refs": [
+          {
+            "page": 11,
+            "line_no": 2,
+            "raw_label": "Property, plant and equipment",
+            "entity_scope": "GROUP",
+            "scale_source": "Rm",
+            "source_label": "Property, plant and equipment",
+            "source_sheet": "SFP_GROUP",
+            "mapping_method": "RULE",
+            "mapping_confidence": 0.95,
+            "extraction_cell_ref": "SFP_GROUP!row_2"
+          }
+        ]
+      },
+      {
+        "canonical_key": "property_plant_equipment",
+        "period_end": "2022-06-30",
+        "value_base": 16816.0,
+        "source_refs": [
+          {
+            "page": 11,
+            "line_no": 2,
+            "raw_label": "Property, plant and equipment",
+            "entity_scope": "GROUP",
+            "scale_source": "Rm",
+            "source_label": "Property, plant and equipment",
+            "source_sheet": "SFP_GROUP",
+            "mapping_method": "RULE",
+            "mapping_confidence": 0.95,
+            "extraction_cell_ref": "SFP_GROUP!row_2"
+          }
+        ]
+      },
+      {
+        "canonical_key": "property_plant_equipment",
+        "period_end": "2023-06-30",
+        "value_base": 16601.0,
+        "source_refs": [
+          {
+            "page": 11,
+            "line_no": 2,
+            "raw_label": "Property, plant and equipment",
+            "entity_scope": "GROUP",
+            "scale_source": "Rm",
+            "source_label": "Property, plant and equipment",
+            "source_sheet": "SFP_GROUP",
+            "mapping_method": "RULE",
+            "mapping_confidence": 0.95,
+            "extraction_cell_ref": "SFP_GROUP!row_2"
           }
         ]
       },
@@ -2453,6 +4165,82 @@
       },
       {
         "canonical_key": "revenue",
+        "period_end": "2021-06-30",
+        "value_base": 168030.0,
+        "source_refs": [
+          {
+            "page": 11,
+            "line_no": 1,
+            "raw_label": "Sale of merchandise",
+            "entity_scope": "GROUP",
+            "scale_source": "Rm",
+            "source_label": "Sale of merchandise",
+            "source_sheet": "SCI_GROUP",
+            "mapping_method": "RULE",
+            "mapping_confidence": 0.95,
+            "extraction_cell_ref": "SCI_GROUP!row_1"
+          }
+        ]
+      },
+      {
+        "canonical_key": "revenue",
+        "period_end": "2022-06-30",
+        "value_base": 184078.0,
+        "source_refs": [
+          {
+            "page": 11,
+            "line_no": 1,
+            "raw_label": "Sale of merchandise",
+            "entity_scope": "GROUP",
+            "scale_source": "Rm",
+            "source_label": "Sale of merchandise",
+            "source_sheet": "SCI_GROUP",
+            "mapping_method": "RULE",
+            "mapping_confidence": 0.95,
+            "extraction_cell_ref": "SCI_GROUP!row_1"
+          }
+        ]
+      },
+      {
+        "canonical_key": "revenue",
+        "period_end": "2022-06-30",
+        "value_base": 183868.0,
+        "source_refs": [
+          {
+            "page": 11,
+            "line_no": 1,
+            "raw_label": "Sale of merchandise",
+            "entity_scope": "GROUP",
+            "scale_source": "Rm",
+            "source_label": "Sale of merchandise",
+            "source_sheet": "SCI_GROUP",
+            "mapping_method": "RULE",
+            "mapping_confidence": 0.95,
+            "extraction_cell_ref": "SCI_GROUP!row_1"
+          }
+        ]
+      },
+      {
+        "canonical_key": "revenue",
+        "period_end": "2023-06-30",
+        "value_base": 214956.0,
+        "source_refs": [
+          {
+            "page": 11,
+            "line_no": 1,
+            "raw_label": "Sale of merchandise",
+            "entity_scope": "GROUP",
+            "scale_source": "Rm",
+            "source_label": "Sale of merchandise",
+            "source_sheet": "SCI_GROUP",
+            "mapping_method": "RULE",
+            "mapping_confidence": 0.95,
+            "extraction_cell_ref": "SCI_GROUP!row_1"
+          }
+        ]
+      },
+      {
+        "canonical_key": "revenue",
         "period_end": "2023-06-30",
         "value_base": 214956.0,
         "source_refs": [
@@ -2524,6 +4312,82 @@
             "mapping_method": "RULE",
             "mapping_confidence": 0.95,
             "extraction_cell_ref": "SCI_GROUP!row_1"
+          }
+        ]
+      },
+      {
+        "canonical_key": "right_of_use_assets",
+        "period_end": "2021-06-30",
+        "value_base": 20520.0,
+        "source_refs": [
+          {
+            "page": 11,
+            "line_no": 3,
+            "raw_label": "Right-of-use assets",
+            "entity_scope": "GROUP",
+            "scale_source": "Rm",
+            "source_label": "Right-of-use assets",
+            "source_sheet": "SFP_GROUP",
+            "mapping_method": "RULE",
+            "mapping_confidence": 0.95,
+            "extraction_cell_ref": "SFP_GROUP!row_3"
+          }
+        ]
+      },
+      {
+        "canonical_key": "right_of_use_assets",
+        "period_end": "2022-06-30",
+        "value_base": 23725.0,
+        "source_refs": [
+          {
+            "page": 11,
+            "line_no": 3,
+            "raw_label": "Right-of-use assets",
+            "entity_scope": "GROUP",
+            "scale_source": "Rm",
+            "source_label": "Right-of-use assets",
+            "source_sheet": "SFP_GROUP",
+            "mapping_method": "RULE",
+            "mapping_confidence": 0.95,
+            "extraction_cell_ref": "SFP_GROUP!row_3"
+          }
+        ]
+      },
+      {
+        "canonical_key": "right_of_use_assets",
+        "period_end": "2022-06-30",
+        "value_base": 23725.0,
+        "source_refs": [
+          {
+            "page": 11,
+            "line_no": 3,
+            "raw_label": "Right-of-use assets",
+            "entity_scope": "GROUP",
+            "scale_source": "Rm",
+            "source_label": "Right-of-use assets",
+            "source_sheet": "SFP_GROUP",
+            "mapping_method": "RULE",
+            "mapping_confidence": 0.95,
+            "extraction_cell_ref": "SFP_GROUP!row_3"
+          }
+        ]
+      },
+      {
+        "canonical_key": "right_of_use_assets",
+        "period_end": "2023-06-30",
+        "value_base": 26781.0,
+        "source_refs": [
+          {
+            "page": 11,
+            "line_no": 3,
+            "raw_label": "Right-of-use assets",
+            "entity_scope": "GROUP",
+            "scale_source": "Rm",
+            "source_label": "Right-of-use assets",
+            "source_sheet": "SFP_GROUP",
+            "mapping_method": "RULE",
+            "mapping_confidence": 0.95,
+            "extraction_cell_ref": "SFP_GROUP!row_3"
           }
         ]
       },
@@ -2605,6 +4469,82 @@
       },
       {
         "canonical_key": "share_of_profit_associates",
+        "period_end": "2021-06-30",
+        "value_base": 120.0,
+        "source_refs": [
+          {
+            "page": 11,
+            "line_no": 17,
+            "raw_label": "Share of profit of equity accounted investments",
+            "entity_scope": "GROUP",
+            "scale_source": "Rm",
+            "source_label": "Share of profit of equity accounted investments",
+            "source_sheet": "SCI_GROUP",
+            "mapping_method": "RULE",
+            "mapping_confidence": 0.95,
+            "extraction_cell_ref": "SCI_GROUP!row_17"
+          }
+        ]
+      },
+      {
+        "canonical_key": "share_of_profit_associates",
+        "period_end": "2022-06-30",
+        "value_base": 208.0,
+        "source_refs": [
+          {
+            "page": 11,
+            "line_no": 17,
+            "raw_label": "Share of profit of equity accounted investments",
+            "entity_scope": "GROUP",
+            "scale_source": "Rm",
+            "source_label": "Share of profit of equity accounted investments",
+            "source_sheet": "SCI_GROUP",
+            "mapping_method": "RULE",
+            "mapping_confidence": 0.95,
+            "extraction_cell_ref": "SCI_GROUP!row_17"
+          }
+        ]
+      },
+      {
+        "canonical_key": "share_of_profit_associates",
+        "period_end": "2022-06-30",
+        "value_base": 208.0,
+        "source_refs": [
+          {
+            "page": 11,
+            "line_no": 6,
+            "raw_label": "Share of profit of equity accounted investments",
+            "entity_scope": "GROUP",
+            "scale_source": "Rm",
+            "source_label": "Share of profit of equity accounted investments",
+            "source_sheet": "SCI_GROUP",
+            "mapping_method": "RULE",
+            "mapping_confidence": 0.95,
+            "extraction_cell_ref": "SCI_GROUP!row_6"
+          }
+        ]
+      },
+      {
+        "canonical_key": "share_of_profit_associates",
+        "period_end": "2023-06-30",
+        "value_base": 251.0,
+        "source_refs": [
+          {
+            "page": 11,
+            "line_no": 6,
+            "raw_label": "Share of profit of equity accounted investments",
+            "entity_scope": "GROUP",
+            "scale_source": "Rm",
+            "source_label": "Share of profit of equity accounted investments",
+            "source_sheet": "SCI_GROUP",
+            "mapping_method": "RULE",
+            "mapping_confidence": 0.95,
+            "extraction_cell_ref": "SCI_GROUP!row_6"
+          }
+        ]
+      },
+      {
+        "canonical_key": "share_of_profit_associates",
         "period_end": "2023-06-30",
         "value_base": 251.0,
         "source_refs": [
@@ -2676,6 +4616,82 @@
             "mapping_method": "RULE",
             "mapping_confidence": 0.95,
             "extraction_cell_ref": "SCI_GROUP!row_6"
+          }
+        ]
+      },
+      {
+        "canonical_key": "short_term_borrowings",
+        "period_end": "2021-06-30",
+        "value_base": 1221.0,
+        "source_refs": [
+          {
+            "page": 11,
+            "line_no": 41,
+            "raw_label": "Bank overdrafts",
+            "entity_scope": "GROUP",
+            "scale_source": "Rm",
+            "source_label": "Bank overdrafts",
+            "source_sheet": "SFP_GROUP",
+            "mapping_method": "REGEX",
+            "mapping_confidence": 0.85,
+            "extraction_cell_ref": "SFP_GROUP!row_41"
+          }
+        ]
+      },
+      {
+        "canonical_key": "short_term_borrowings",
+        "period_end": "2022-06-30",
+        "value_base": 4998.0,
+        "source_refs": [
+          {
+            "page": 11,
+            "line_no": 41,
+            "raw_label": "Bank overdrafts",
+            "entity_scope": "GROUP",
+            "scale_source": "Rm",
+            "source_label": "Bank overdrafts",
+            "source_sheet": "SFP_GROUP",
+            "mapping_method": "REGEX",
+            "mapping_confidence": 0.85,
+            "extraction_cell_ref": "SFP_GROUP!row_41"
+          }
+        ]
+      },
+      {
+        "canonical_key": "short_term_borrowings",
+        "period_end": "2022-06-30",
+        "value_base": 4998.0,
+        "source_refs": [
+          {
+            "page": 11,
+            "line_no": 42,
+            "raw_label": "Bank overdrafts",
+            "entity_scope": "GROUP",
+            "scale_source": "Rm",
+            "source_label": "Bank overdrafts",
+            "source_sheet": "SFP_GROUP",
+            "mapping_method": "REGEX",
+            "mapping_confidence": 0.85,
+            "extraction_cell_ref": "SFP_GROUP!row_42"
+          }
+        ]
+      },
+      {
+        "canonical_key": "short_term_borrowings",
+        "period_end": "2023-06-30",
+        "value_base": 6604.0,
+        "source_refs": [
+          {
+            "page": 11,
+            "line_no": 42,
+            "raw_label": "Bank overdrafts",
+            "entity_scope": "GROUP",
+            "scale_source": "Rm",
+            "source_label": "Bank overdrafts",
+            "source_sheet": "SFP_GROUP",
+            "mapping_method": "REGEX",
+            "mapping_confidence": 0.85,
+            "extraction_cell_ref": "SFP_GROUP!row_42"
           }
         ]
       },
@@ -2757,6 +4773,82 @@
       },
       {
         "canonical_key": "total_assets",
+        "period_end": "2021-06-30",
+        "value_base": 77066.0,
+        "source_refs": [
+          {
+            "page": 11,
+            "line_no": 22,
+            "raw_label": "Total assets Total assets",
+            "entity_scope": "GROUP",
+            "scale_source": "Rm",
+            "source_label": "Total assets Total assets",
+            "source_sheet": "SFP_GROUP",
+            "mapping_method": "RULE",
+            "mapping_confidence": 0.95,
+            "extraction_cell_ref": "SFP_GROUP!row_22"
+          }
+        ]
+      },
+      {
+        "canonical_key": "total_assets",
+        "period_end": "2022-06-30",
+        "value_base": 91455.0,
+        "source_refs": [
+          {
+            "page": 11,
+            "line_no": 22,
+            "raw_label": "Total assets Total assets",
+            "entity_scope": "GROUP",
+            "scale_source": "Rm",
+            "source_label": "Total assets Total assets",
+            "source_sheet": "SFP_GROUP",
+            "mapping_method": "RULE",
+            "mapping_confidence": 0.95,
+            "extraction_cell_ref": "SFP_GROUP!row_22"
+          }
+        ]
+      },
+      {
+        "canonical_key": "total_assets",
+        "period_end": "2022-06-30",
+        "value_base": 91455.0,
+        "source_refs": [
+          {
+            "page": 11,
+            "line_no": 23,
+            "raw_label": "Total assets",
+            "entity_scope": "GROUP",
+            "scale_source": "Rm",
+            "source_label": "Total assets",
+            "source_sheet": "SFP_GROUP",
+            "mapping_method": "RULE",
+            "mapping_confidence": 0.95,
+            "extraction_cell_ref": "SFP_GROUP!row_23"
+          }
+        ]
+      },
+      {
+        "canonical_key": "total_assets",
+        "period_end": "2023-06-30",
+        "value_base": 102356.0,
+        "source_refs": [
+          {
+            "page": 11,
+            "line_no": 23,
+            "raw_label": "Total assets",
+            "entity_scope": "GROUP",
+            "scale_source": "Rm",
+            "source_label": "Total assets",
+            "source_sheet": "SFP_GROUP",
+            "mapping_method": "RULE",
+            "mapping_confidence": 0.95,
+            "extraction_cell_ref": "SFP_GROUP!row_23"
+          }
+        ]
+      },
+      {
+        "canonical_key": "total_assets",
         "period_end": "2023-06-30",
         "value_base": 102450.0,
         "source_refs": [
@@ -2773,370 +4865,85 @@
             "extraction_cell_ref": "SFP_GROUP!row_25"
           }
         ]
-      },
-      {
-        "canonical_key": "total_assets",
-        "period_end": "2024-06-30",
-        "value_base": 112328.0,
-        "source_refs": [
-          {
-            "page": 11,
-            "line_no": 25,
-            "raw_label": "Total assets",
-            "entity_scope": "GROUP",
-            "scale_source": "Rm",
-            "source_label": "Total assets",
-            "source_sheet": "SFP_GROUP",
-            "mapping_method": "RULE",
-            "mapping_confidence": 0.95,
-            "extraction_cell_ref": "SFP_GROUP!row_25"
-          }
-        ]
-      },
-      {
-        "canonical_key": "total_assets",
-        "period_end": "2024-06-30",
-        "value_base": 112328.0,
-        "source_refs": [
-          {
-            "page": 11,
-            "line_no": 24,
-            "raw_label": "Total assets",
-            "entity_scope": "GROUP",
-            "scale_source": "Rm",
-            "source_label": "Total assets",
-            "source_sheet": "SFP_GROUP",
-            "mapping_method": "RULE",
-            "mapping_confidence": 0.95,
-            "extraction_cell_ref": "SFP_GROUP!row_24"
-          }
-        ]
-      },
-      {
-        "canonical_key": "total_assets",
-        "period_end": "2025-06-30",
-        "value_base": 124944.0,
-        "source_refs": [
-          {
-            "page": 11,
-            "line_no": 24,
-            "raw_label": "Total assets",
-            "entity_scope": "GROUP",
-            "scale_source": "Rm",
-            "source_label": "Total assets",
-            "source_sheet": "SFP_GROUP",
-            "mapping_method": "RULE",
-            "mapping_confidence": 0.95,
-            "extraction_cell_ref": "SFP_GROUP!row_24"
-          }
-        ]
-      },
-      {
-        "canonical_key": "total_equity",
-        "period_end": "2023-06-30",
-        "value_base": 7516.0,
-        "source_refs": [
-          {
-            "page": 11,
-            "line_no": 26,
-            "raw_label": "Equity Capital and reserves attributable to owners of the parent Stated capital",
-            "entity_scope": "GROUP",
-            "scale_source": "Rm",
-            "source_label": "Equity Capital and reserves attributable to owners of the parent Stated capital",
-            "source_sheet": "SFP_GROUP",
-            "mapping_method": "RULE",
-            "mapping_confidence": 0.95,
-            "extraction_cell_ref": "SFP_GROUP!row_26"
-          }
-        ]
-      },
-      {
-        "canonical_key": "total_equity",
-        "period_end": "2024-06-30",
-        "value_base": 7516.0,
-        "source_refs": [
-          {
-            "page": 11,
-            "line_no": 26,
-            "raw_label": "Equity Capital and reserves attributable to owners of the parent Stated capital",
-            "entity_scope": "GROUP",
-            "scale_source": "Rm",
-            "source_label": "Equity Capital and reserves attributable to owners of the parent Stated capital",
-            "source_sheet": "SFP_GROUP",
-            "mapping_method": "RULE",
-            "mapping_confidence": 0.95,
-            "extraction_cell_ref": "SFP_GROUP!row_26"
-          }
-        ]
-      },
-      {
-        "canonical_key": "total_equity",
-        "period_end": "2024-06-30",
-        "value_base": 7516.0,
-        "source_refs": [
-          {
-            "page": 11,
-            "line_no": 25,
-            "raw_label": "Equity Capital and reserves attributable to owners of the parent Stated capital",
-            "entity_scope": "GROUP",
-            "scale_source": "Rm",
-            "source_label": "Equity Capital and reserves attributable to owners of the parent Stated capital",
-            "source_sheet": "SFP_GROUP",
-            "mapping_method": "RULE",
-            "mapping_confidence": 0.95,
-            "extraction_cell_ref": "SFP_GROUP!row_25"
-          }
-        ]
-      },
-      {
-        "canonical_key": "total_equity",
-        "period_end": "2025-06-30",
-        "value_base": 7516.0,
-        "source_refs": [
-          {
-            "page": 11,
-            "line_no": 25,
-            "raw_label": "Equity Capital and reserves attributable to owners of the parent Stated capital",
-            "entity_scope": "GROUP",
-            "scale_source": "Rm",
-            "source_label": "Equity Capital and reserves attributable to owners of the parent Stated capital",
-            "source_sheet": "SFP_GROUP",
-            "mapping_method": "RULE",
-            "mapping_confidence": 0.95,
-            "extraction_cell_ref": "SFP_GROUP!row_25"
-          }
-        ]
-      },
-      {
-        "canonical_key": "total_liabilities",
-        "period_end": "2023-06-30",
-        "value_base": 76172.0,
-        "source_refs": [
-          {
-            "page": 11,
-            "line_no": 46,
-            "raw_label": "Total liabilities",
-            "entity_scope": "GROUP",
-            "scale_source": "Rm",
-            "source_label": "Total liabilities",
-            "source_sheet": "SFP_GROUP",
-            "mapping_method": "RULE",
-            "mapping_confidence": 0.95,
-            "extraction_cell_ref": "SFP_GROUP!row_46"
-          }
-        ]
-      },
-      {
-        "canonical_key": "total_liabilities",
-        "period_end": "2024-06-30",
-        "value_base": 84604.0,
-        "source_refs": [
-          {
-            "page": 11,
-            "line_no": 46,
-            "raw_label": "Total liabilities",
-            "entity_scope": "GROUP",
-            "scale_source": "Rm",
-            "source_label": "Total liabilities",
-            "source_sheet": "SFP_GROUP",
-            "mapping_method": "RULE",
-            "mapping_confidence": 0.95,
-            "extraction_cell_ref": "SFP_GROUP!row_46"
-          }
-        ]
-      },
-      {
-        "canonical_key": "total_liabilities",
-        "period_end": "2024-06-30",
-        "value_base": 84604.0,
-        "source_refs": [
-          {
-            "page": 11,
-            "line_no": 47,
-            "raw_label": "Total liabilities",
-            "entity_scope": "GROUP",
-            "scale_source": "Rm",
-            "source_label": "Total liabilities",
-            "source_sheet": "SFP_GROUP",
-            "mapping_method": "RULE",
-            "mapping_confidence": 0.95,
-            "extraction_cell_ref": "SFP_GROUP!row_47"
-          }
-        ]
-      },
-      {
-        "canonical_key": "total_liabilities",
-        "period_end": "2025-06-30",
-        "value_base": 94827.0,
-        "source_refs": [
-          {
-            "page": 11,
-            "line_no": 47,
-            "raw_label": "Total liabilities",
-            "entity_scope": "GROUP",
-            "scale_source": "Rm",
-            "source_label": "Total liabilities",
-            "source_sheet": "SFP_GROUP",
-            "mapping_method": "RULE",
-            "mapping_confidence": 0.95,
-            "extraction_cell_ref": "SFP_GROUP!row_47"
-          }
-        ]
-      },
-      {
-        "canonical_key": "trade_payables",
-        "period_end": "2023-06-30",
-        "value_base": 69.0,
-        "source_refs": [
-          {
-            "page": 11,
-            "line_no": 37,
-            "raw_label": "Trade and other payables",
-            "entity_scope": "GROUP",
-            "scale_source": "Rm",
-            "source_label": "Trade and other payables",
-            "source_sheet": "SFP_GROUP",
-            "mapping_method": "RULE",
-            "mapping_confidence": 0.95,
-            "extraction_cell_ref": "SFP_GROUP!row_37"
-          }
-        ]
-      },
-      {
-        "canonical_key": "trade_payables",
-        "period_end": "2024-06-30",
-        "value_base": 86.0,
-        "source_refs": [
-          {
-            "page": 11,
-            "line_no": 37,
-            "raw_label": "Trade and other payables",
-            "entity_scope": "GROUP",
-            "scale_source": "Rm",
-            "source_label": "Trade and other payables",
-            "source_sheet": "SFP_GROUP",
-            "mapping_method": "RULE",
-            "mapping_confidence": 0.95,
-            "extraction_cell_ref": "SFP_GROUP!row_37"
-          }
-        ]
-      },
-      {
-        "canonical_key": "trade_payables",
-        "period_end": "2024-06-30",
-        "value_base": 86.0,
-        "source_refs": [
-          {
-            "page": 11,
-            "line_no": 36,
-            "raw_label": "Trade and other payables",
-            "entity_scope": "GROUP",
-            "scale_source": "Rm",
-            "source_label": "Trade and other payables",
-            "source_sheet": "SFP_GROUP",
-            "mapping_method": "RULE",
-            "mapping_confidence": 0.95,
-            "extraction_cell_ref": "SFP_GROUP!row_36"
-          }
-        ]
-      },
-      {
-        "canonical_key": "trade_payables",
-        "period_end": "2025-06-30",
-        "value_base": 76.0,
-        "source_refs": [
-          {
-            "page": 11,
-            "line_no": 36,
-            "raw_label": "Trade and other payables",
-            "entity_scope": "GROUP",
-            "scale_source": "Rm",
-            "source_label": "Trade and other payables",
-            "source_sheet": "SFP_GROUP",
-            "mapping_method": "RULE",
-            "mapping_confidence": 0.95,
-            "extraction_cell_ref": "SFP_GROUP!row_36"
-          }
-        ]
-      },
-      {
-        "canonical_key": "trade_receivables",
-        "period_end": "2023-06-30",
-        "value_base": 178.0,
-        "source_refs": [
-          {
-            "page": 11,
-            "line_no": 13,
-            "raw_label": "Trade and other receivables",
-            "entity_scope": "GROUP",
-            "scale_source": "Rm",
-            "source_label": "Trade and other receivables",
-            "source_sheet": "SFP_GROUP",
-            "mapping_method": "RULE",
-            "mapping_confidence": 0.95,
-            "extraction_cell_ref": "SFP_GROUP!row_13"
-          }
-        ]
-      },
-      {
-        "canonical_key": "trade_receivables",
-        "period_end": "2024-06-30",
-        "value_base": 416.0,
-        "source_refs": [
-          {
-            "page": 11,
-            "line_no": 13,
-            "raw_label": "Trade and other receivables",
-            "entity_scope": "GROUP",
-            "scale_source": "Rm",
-            "source_label": "Trade and other receivables",
-            "source_sheet": "SFP_GROUP",
-            "mapping_method": "RULE",
-            "mapping_confidence": 0.95,
-            "extraction_cell_ref": "SFP_GROUP!row_13"
-          }
-        ]
-      },
-      {
-        "canonical_key": "trade_receivables",
-        "period_end": "2024-06-30",
-        "value_base": 416.0,
-        "source_refs": [
-          {
-            "page": 11,
-            "line_no": 12,
-            "raw_label": "Trade and other receivables",
-            "entity_scope": "GROUP",
-            "scale_source": "Rm",
-            "source_label": "Trade and other receivables",
-            "source_sheet": "SFP_GROUP",
-            "mapping_method": "RULE",
-            "mapping_confidence": 0.95,
-            "extraction_cell_ref": "SFP_GROUP!row_12"
-          }
-        ]
-      },
-      {
-        "canonical_key": "trade_receivables",
-        "period_end": "2025-06-30",
-        "value_base": 585.0,
-        "source_refs": [
-          {
-            "page": 11,
-            "line_no": 12,
-            "raw_label": "Trade and other receivables",
-            "entity_scope": "GROUP",
-            "scale_source": "Rm",
-            "source_label": "Trade and other receivables",
-            "source_sheet": "SFP_GROUP",
-            "mapping_method": "RULE",
-            "mapping_confidence": 0.95,
-            "extraction_cell_ref": "SFP_GROUP!row_12"
-          }
-        ]
       }
     ],
     "metrics": [
+      {
+        "metric_key": "current_ratio",
+        "period_end": "2021-06-30",
+        "value": 1.2723,
+        "calc_trace": [
+          {
+            "inputs": [
+              {
+                "value": 7950.0,
+                "period_end": "2021-06-30",
+                "canonical_key": "cash_and_cash_equivalents"
+              },
+              {
+                "value": 206.0,
+                "period_end": "2021-06-30",
+                "canonical_key": "trade_receivables"
+              },
+              {
+                "value": 18396.0,
+                "period_end": "2021-06-30",
+                "canonical_key": "inventories"
+              },
+              {
+                "value": 19649.0,
+                "period_end": "2021-06-30",
+                "canonical_key": "trade_payables"
+              },
+              {
+                "value": 1221.0,
+                "period_end": "2021-06-30",
+                "canonical_key": "short_term_borrowings"
+              }
+            ],
+            "output": 1.2723,
+            "formula_id": "v1_current_ratio"
+          }
+        ]
+      },
+      {
+        "metric_key": "current_ratio",
+        "period_end": "2022-06-30",
+        "value": 1.2378,
+        "calc_trace": [
+          {
+            "inputs": [
+              {
+                "value": 10665.0,
+                "period_end": "2022-06-30",
+                "canonical_key": "cash_and_cash_equivalents"
+              },
+              {
+                "value": 228.0,
+                "period_end": "2022-06-30",
+                "canonical_key": "trade_receivables"
+              },
+              {
+                "value": 21879.0,
+                "period_end": "2022-06-30",
+                "canonical_key": "inventories"
+              },
+              {
+                "value": 21477.0,
+                "period_end": "2022-06-30",
+                "canonical_key": "trade_payables"
+              },
+              {
+                "value": 4998.0,
+                "period_end": "2022-06-30",
+                "canonical_key": "short_term_borrowings"
+              }
+            ],
+            "output": 1.2378,
+            "formula_id": "v1_current_ratio"
+          }
+        ]
+      },
       {
         "metric_key": "current_ratio",
         "period_end": "2023-06-30",
@@ -3253,6 +5060,18 @@
       },
       {
         "metric_key": "dso_days",
+        "period_end": "2021-06-30",
+        "value": 0.4,
+        "calc_trace": []
+      },
+      {
+        "metric_key": "dso_days",
+        "period_end": "2022-06-30",
+        "value": 0.5,
+        "calc_trace": []
+      },
+      {
+        "metric_key": "dso_days",
         "period_end": "2023-06-30",
         "value": 0.3,
         "calc_trace": []
@@ -3268,6 +5087,52 @@
         "period_end": "2025-06-30",
         "value": 0.8,
         "calc_trace": []
+      },
+      {
+        "metric_key": "ebitda",
+        "period_end": "2021-06-30",
+        "value": 4328.0,
+        "calc_trace": [
+          {
+            "inputs": [
+              {
+                "value": 9664.0,
+                "period_end": "2021-06-30",
+                "canonical_key": "operating_profit"
+              },
+              {
+                "value": -5336.0,
+                "period_end": "2021-06-30",
+                "canonical_key": "depreciation_amortisation"
+              }
+            ],
+            "output": 4328.0,
+            "formula_id": "v1_ebitda"
+          }
+        ]
+      },
+      {
+        "metric_key": "ebitda",
+        "period_end": "2022-06-30",
+        "value": 5671.0,
+        "calc_trace": [
+          {
+            "inputs": [
+              {
+                "value": 11055.0,
+                "period_end": "2022-06-30",
+                "canonical_key": "operating_profit"
+              },
+              {
+                "value": -5384.0,
+                "period_end": "2022-06-30",
+                "canonical_key": "depreciation_amortisation"
+              }
+            ],
+            "output": 5671.0,
+            "formula_id": "v1_ebitda"
+          }
+        ]
       },
       {
         "metric_key": "ebitda",
@@ -3335,6 +5200,62 @@
             ],
             "output": 6931.0,
             "formula_id": "v1_ebitda"
+          }
+        ]
+      },
+      {
+        "metric_key": "ebitda_margin",
+        "period_end": "2021-06-30",
+        "value": 2.5757,
+        "calc_trace": [
+          {
+            "inputs": [
+              {
+                "value": 9664.0,
+                "period_end": "2021-06-30",
+                "canonical_key": "operating_profit"
+              },
+              {
+                "value": -5336.0,
+                "period_end": "2021-06-30",
+                "canonical_key": "depreciation_amortisation"
+              },
+              {
+                "value": 168030.0,
+                "period_end": "2021-06-30",
+                "canonical_key": "revenue"
+              }
+            ],
+            "output": 2.5757,
+            "formula_id": "v1_ebitda_margin"
+          }
+        ]
+      },
+      {
+        "metric_key": "ebitda_margin",
+        "period_end": "2022-06-30",
+        "value": 3.0843,
+        "calc_trace": [
+          {
+            "inputs": [
+              {
+                "value": 11055.0,
+                "period_end": "2022-06-30",
+                "canonical_key": "operating_profit"
+              },
+              {
+                "value": -5384.0,
+                "period_end": "2022-06-30",
+                "canonical_key": "depreciation_amortisation"
+              },
+              {
+                "value": 183868.0,
+                "period_end": "2022-06-30",
+                "canonical_key": "revenue"
+              }
+            ],
+            "output": 3.0843,
+            "formula_id": "v1_ebitda_margin"
           }
         ]
       },
@@ -3419,6 +5340,72 @@
             ],
             "output": 2.7428,
             "formula_id": "v1_ebitda_margin"
+          }
+        ]
+      },
+      {
+        "metric_key": "fcf_conversion",
+        "period_end": "2021-06-30",
+        "value": 2.3135,
+        "calc_trace": [
+          {
+            "inputs": [
+              {
+                "value": 7983.0,
+                "period_end": "2021-06-30",
+                "canonical_key": "net_cfo"
+              },
+              {
+                "value": -2030.0,
+                "period_end": "2021-06-30",
+                "canonical_key": "capex"
+              },
+              {
+                "value": 9664.0,
+                "period_end": "2021-06-30",
+                "canonical_key": "operating_profit"
+              },
+              {
+                "value": -5336.0,
+                "period_end": "2021-06-30",
+                "canonical_key": "depreciation_amortisation"
+              }
+            ],
+            "output": 2.3135,
+            "formula_id": "v1_fcf_conversion"
+          }
+        ]
+      },
+      {
+        "metric_key": "fcf_conversion",
+        "period_end": "2022-06-30",
+        "value": 1.7471,
+        "calc_trace": [
+          {
+            "inputs": [
+              {
+                "value": 6686.0,
+                "period_end": "2022-06-30",
+                "canonical_key": "net_cfo"
+              },
+              {
+                "value": -3222.0,
+                "period_end": "2022-06-30",
+                "canonical_key": "capex"
+              },
+              {
+                "value": 11055.0,
+                "period_end": "2022-06-30",
+                "canonical_key": "operating_profit"
+              },
+              {
+                "value": -5384.0,
+                "period_end": "2022-06-30",
+                "canonical_key": "depreciation_amortisation"
+              }
+            ],
+            "output": 1.7471,
+            "formula_id": "v1_fcf_conversion"
           }
         ]
       },
@@ -3523,6 +5510,52 @@
       },
       {
         "metric_key": "interest_cover",
+        "period_end": "2021-06-30",
+        "value": 3.1225,
+        "calc_trace": [
+          {
+            "inputs": [
+              {
+                "value": 9664.0,
+                "period_end": "2021-06-30",
+                "canonical_key": "operating_profit"
+              },
+              {
+                "value": -3095.0,
+                "period_end": "2021-06-30",
+                "canonical_key": "finance_costs"
+              }
+            ],
+            "output": 3.1225,
+            "formula_id": "v1_interest_cover"
+          }
+        ]
+      },
+      {
+        "metric_key": "interest_cover",
+        "period_end": "2022-06-30",
+        "value": 3.6936,
+        "calc_trace": [
+          {
+            "inputs": [
+              {
+                "value": 11055.0,
+                "period_end": "2022-06-30",
+                "canonical_key": "operating_profit"
+              },
+              {
+                "value": -2993.0,
+                "period_end": "2022-06-30",
+                "canonical_key": "finance_costs"
+              }
+            ],
+            "output": 3.6936,
+            "formula_id": "v1_interest_cover"
+          }
+        ]
+      },
+      {
+        "metric_key": "interest_cover",
         "period_end": "2023-06-30",
         "value": 3.3661,
         "calc_trace": [
@@ -3592,6 +5625,52 @@
       },
       {
         "metric_key": "net_debt_ex_leases",
+        "period_end": "2021-06-30",
+        "value": -6729.0,
+        "calc_trace": [
+          {
+            "inputs": [
+              {
+                "value": 7950.0,
+                "period_end": "2021-06-30",
+                "canonical_key": "cash_and_cash_equivalents"
+              },
+              {
+                "value": 1221.0,
+                "period_end": "2021-06-30",
+                "canonical_key": "short_term_borrowings"
+              }
+            ],
+            "output": -6729.0,
+            "formula_id": "v1_net_debt_ex_leases"
+          }
+        ]
+      },
+      {
+        "metric_key": "net_debt_ex_leases",
+        "period_end": "2022-06-30",
+        "value": -5667.0,
+        "calc_trace": [
+          {
+            "inputs": [
+              {
+                "value": 10665.0,
+                "period_end": "2022-06-30",
+                "canonical_key": "cash_and_cash_equivalents"
+              },
+              {
+                "value": 4998.0,
+                "period_end": "2022-06-30",
+                "canonical_key": "short_term_borrowings"
+              }
+            ],
+            "output": -5667.0,
+            "formula_id": "v1_net_debt_ex_leases"
+          }
+        ]
+      },
+      {
+        "metric_key": "net_debt_ex_leases",
         "period_end": "2023-06-30",
         "value": -5944.0,
         "calc_trace": [
@@ -3656,6 +5735,62 @@
             ],
             "output": -8083.0,
             "formula_id": "v1_net_debt_ex_leases"
+          }
+        ]
+      },
+      {
+        "metric_key": "net_debt_incl_leases",
+        "period_end": "2021-06-30",
+        "value": 18072.0,
+        "calc_trace": [
+          {
+            "inputs": [
+              {
+                "value": 7950.0,
+                "period_end": "2021-06-30",
+                "canonical_key": "cash_and_cash_equivalents"
+              },
+              {
+                "value": 1221.0,
+                "period_end": "2021-06-30",
+                "canonical_key": "short_term_borrowings"
+              },
+              {
+                "value": 24801.0,
+                "period_end": "2021-06-30",
+                "canonical_key": "lease_liabilities_current"
+              }
+            ],
+            "output": 18072.0,
+            "formula_id": "v1_net_debt_incl_leases"
+          }
+        ]
+      },
+      {
+        "metric_key": "net_debt_incl_leases",
+        "period_end": "2022-06-30",
+        "value": 22791.0,
+        "calc_trace": [
+          {
+            "inputs": [
+              {
+                "value": 10665.0,
+                "period_end": "2022-06-30",
+                "canonical_key": "cash_and_cash_equivalents"
+              },
+              {
+                "value": 4998.0,
+                "period_end": "2022-06-30",
+                "canonical_key": "short_term_borrowings"
+              },
+              {
+                "value": 28458.0,
+                "period_end": "2022-06-30",
+                "canonical_key": "lease_liabilities_current"
+              }
+            ],
+            "output": 22791.0,
+            "formula_id": "v1_net_debt_incl_leases"
           }
         ]
       },
@@ -3740,6 +5875,82 @@
             ],
             "output": 35033.0,
             "formula_id": "v1_net_debt_incl_leases"
+          }
+        ]
+      },
+      {
+        "metric_key": "net_debt_to_ebitda",
+        "period_end": "2021-06-30",
+        "value": 4.1756,
+        "calc_trace": [
+          {
+            "inputs": [
+              {
+                "value": 9664.0,
+                "period_end": "2021-06-30",
+                "canonical_key": "operating_profit"
+              },
+              {
+                "value": -5336.0,
+                "period_end": "2021-06-30",
+                "canonical_key": "depreciation_amortisation"
+              },
+              {
+                "value": 7950.0,
+                "period_end": "2021-06-30",
+                "canonical_key": "cash_and_cash_equivalents"
+              },
+              {
+                "value": 1221.0,
+                "period_end": "2021-06-30",
+                "canonical_key": "short_term_borrowings"
+              },
+              {
+                "value": 24801.0,
+                "period_end": "2021-06-30",
+                "canonical_key": "lease_liabilities_current"
+              }
+            ],
+            "output": 4.1756,
+            "formula_id": "v1_net_debt_to_ebitda"
+          }
+        ]
+      },
+      {
+        "metric_key": "net_debt_to_ebitda",
+        "period_end": "2022-06-30",
+        "value": 4.0189,
+        "calc_trace": [
+          {
+            "inputs": [
+              {
+                "value": 11055.0,
+                "period_end": "2022-06-30",
+                "canonical_key": "operating_profit"
+              },
+              {
+                "value": -5384.0,
+                "period_end": "2022-06-30",
+                "canonical_key": "depreciation_amortisation"
+              },
+              {
+                "value": 10665.0,
+                "period_end": "2022-06-30",
+                "canonical_key": "cash_and_cash_equivalents"
+              },
+              {
+                "value": 4998.0,
+                "period_end": "2022-06-30",
+                "canonical_key": "short_term_borrowings"
+              },
+              {
+                "value": 28458.0,
+                "period_end": "2022-06-30",
+                "canonical_key": "lease_liabilities_current"
+              }
+            ],
+            "output": 4.0189,
+            "formula_id": "v1_net_debt_to_ebitda"
           }
         ]
       },
@@ -3856,6 +6067,18 @@
             "formula_id": "v1_net_debt_to_ebitda"
           }
         ]
+      },
+      {
+        "metric_key": "wc_intensity",
+        "period_end": "2021-06-30",
+        "value": -0.0062,
+        "calc_trace": []
+      },
+      {
+        "metric_key": "wc_intensity",
+        "period_end": "2022-06-30",
+        "value": 0.0034,
+        "calc_trace": []
       },
       {
         "metric_key": "wc_intensity",

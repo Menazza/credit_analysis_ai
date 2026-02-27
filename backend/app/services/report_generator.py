@@ -3,8 +3,11 @@ Report generation — Word (credit memo), Excel (financial model), PowerPoint (c
 Production-ready styling, institutional format.
 """
 from datetime import date
-from io import BytesIO
+import csv
+import json
+from io import BytesIO, StringIO
 from typing import Any
+import zipfile
 from docx import Document as DocxDocument
 from docx.shared import Pt, Inches
 from docx.enum.text import WD_ALIGN_PARAGRAPH
@@ -31,6 +34,7 @@ MEMO_SECTIONS = [
     "covenants_headroom",
     "security_collateral",
     "internal_rating_rationale",
+    "credit_risk_quantification",
     "recommendation_conditions",
     "monitoring_plan",
     "appendices",
@@ -54,10 +58,25 @@ MEMO_SECTION_TITLES = {
     "covenants_headroom": "Covenants & Headroom",
     "security_collateral": "Security & Collateral",
     "internal_rating_rationale": "Internal Rating Rationale",
+    "credit_risk_quantification": "Credit Risk Quantification (PD/LGD/EAD/ECL)",
     "recommendation_conditions": "Recommendation & Conditions",
     "monitoring_plan": "Monitoring Plan",
     "appendices": "Appendices",
 }
+
+
+def _fmt_num(v: Any) -> str:
+    if v is None:
+        return "N/A"
+    if isinstance(v, (int, float)):
+        return f"{v:,.2f}" if abs(v) < 1_000_000 else f"{v/1_000_000:,.2f}m"
+    return str(v)
+
+
+def _fmt_pct(v: Any) -> str:
+    if not isinstance(v, (int, float)):
+        return "N/A"
+    return f"{v * 100:.2f}%"
 
 
 def _add_formatted_paragraphs(doc: "DocxDocument", text: str, style: str | None = None) -> None:
@@ -211,6 +230,66 @@ def _period_key(pe) -> str:
     return pe.isoformat() if hasattr(pe, "isoformat") else str(pe)
 
 
+def _extract_note_refs(text: str, limit: int = 8) -> list[str]:
+    if not text:
+        return []
+    import re
+    refs = re.findall(r"Note\s+\d+(?:\.\d+)?", text, flags=re.IGNORECASE)
+    out: list[str] = []
+    for r in refs:
+        rr = r.replace("note", "Note")
+        if rr not in out:
+            out.append(rr)
+        if len(out) >= limit:
+            break
+    return out
+
+
+def _simple_pdf_from_lines(title: str, lines: list[str]) -> BytesIO:
+    """
+    Minimal single-page text PDF generator without extra dependencies.
+    """
+    safe_lines = [l.replace("\\", "\\\\").replace("(", "\\(").replace(")", "\\)") for l in lines[:44]]
+    offsets: list[int] = []
+    pdf = BytesIO()
+    pdf.write(b"%PDF-1.4\n")
+
+    def _add_obj(data: bytes) -> int:
+        offsets.append(pdf.tell())
+        obj_no = len(offsets)
+        pdf.write(f"{obj_no} 0 obj\n".encode("ascii"))
+        pdf.write(data)
+        pdf.write(b"\nendobj\n")
+        return obj_no
+
+    font_obj = _add_obj(b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>")
+    stream_lines = ["BT /F1 11 Tf 50 790 Td", f"({title}) Tj", "0 -18 Td"]
+    for ln in safe_lines:
+        stream_lines.append(f"({ln[:140]}) Tj")
+        stream_lines.append("0 -15 Td")
+    stream_lines.append("ET")
+    stream = "\n".join(stream_lines).encode("utf-8")
+    content_obj = _add_obj(b"<< /Length " + str(len(stream)).encode("ascii") + b" >>\nstream\n" + stream + b"\nendstream")
+    pages_ref = _add_obj(b"<< /Type /Pages /Count 1 /Kids [4 0 R] >>")
+    _add_obj(
+        f"<< /Type /Page /Parent {pages_ref} 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 {font_obj} 0 R >> >> /Contents {content_obj} 0 R >>".encode(
+            "ascii"
+        )
+    )
+    catalog_ref = _add_obj(f"<< /Type /Catalog /Pages {pages_ref} 0 R >>".encode("ascii"))
+
+    xref_pos = pdf.tell()
+    pdf.write(f"xref\n0 {len(offsets)+1}\n".encode("ascii"))
+    pdf.write(b"0000000000 65535 f \n")
+    for off in offsets:
+        pdf.write(f"{off:010d} 00000 n \n".encode("ascii"))
+    pdf.write(
+        f"trailer\n<< /Size {len(offsets)+1} /Root {catalog_ref} 0 R >>\nstartxref\n{xref_pos}\n%%EOF".encode("ascii")
+    )
+    pdf.seek(0)
+    return pdf
+
+
 def _categorize_fact_key(key: str) -> str:
     k = (key or "").lower()
     if any(x in k for x in ("revenue", "cost_of", "gross_profit", "operating", "profit", "tax", "comprehensive")):
@@ -339,6 +418,172 @@ def build_financial_model_xlsx(
                 cell.number_format = "#,##0.00"
         row += 1
 
+    # Additional institutional sheets (keeps legacy sheets intact)
+    ws_raw = wb.create_sheet("Raw Extracted AFS")
+    _write_formatted_sheet(ws_raw, "Raw Extracted AFS", normalized_rows or [{"label": "No extracted rows", "values": {}}], period_ends, period_key_fn)
+
+    ws_map = wb.create_sheet("Normalized Mapping")
+    ws_map.cell(1, 1, "Canonical Key").font = header_font
+    ws_map.cell(1, 2, "Label").font = header_font
+    ws_map.cell(1, 3, "Period").font = header_font
+    ws_map.cell(1, 4, "Value").font = header_font
+    mr = 2
+    for r in normalized_rows:
+        k = r.get("canonical_key", "")
+        lbl = r.get("label", "")
+        vals = r.get("values") or {}
+        for pe in period_ends:
+            pk = period_key_fn(pe)
+            ws_map.cell(mr, 1, k)
+            ws_map.cell(mr, 2, lbl)
+            ws_map.cell(mr, 3, pk)
+            ws_map.cell(mr, 4, vals.get(pk))
+            mr += 1
+    for c, w in zip(["A", "B", "C", "D"], [30, 44, 14, 16]):
+        ws_map.column_dimensions[c].width = w
+
+    ws_adj = wb.create_sheet("Adjusted Financials")
+    ws_adj.cell(1, 1, "Adjusted Financials (Analyst View)").font = Font(bold=True, size=12)
+    adj_rows = []
+    for r in normalized_rows:
+        ck = (r.get("canonical_key") or "").lower()
+        if ck in {
+            "revenue",
+            "operating_profit",
+            "profit_after_tax",
+            "total_assets",
+            "total_liabilities",
+            "total_equity",
+            "cash_and_cash_equivalents",
+        }:
+            adj_rows.append(r)
+    _write_formatted_sheet(ws_adj, "Adjusted Financials", adj_rows or [{"label": "No adjusted lines", "values": {}}], period_ends, period_key_fn)
+
+    ws_ratio = wb.create_sheet("Ratio Engine")
+    _write_formatted_sheet(ws_ratio, "Ratio Engine", metrics_rows or [{"label": "No ratio data", "values": {}}], period_ends, period_key_fn)
+
+    ws_lease = wb.create_sheet("Lease Adjustments")
+    lease_rows = [r for r in metrics_rows if "lease" in (r.get("metric_key") or "").lower()]
+    _write_formatted_sheet(ws_lease, "Lease Adjustments", lease_rows or [{"label": "No lease-specific metrics", "values": {}}], period_ends, period_key_fn)
+
+    ws_debt = wb.create_sheet("Debt Schedule")
+    debt_rows = [r for r in metrics_rows if any(x in (r.get("metric_key") or "").lower() for x in ("debt", "borrow", "interest_cover", "net_debt"))]
+    _write_formatted_sheet(ws_debt, "Debt Schedule", debt_rows or [{"label": "No debt schedule metrics", "values": {}}], period_ends, period_key_fn)
+
+    ws_cov = wb.create_sheet("Covenant Testing")
+    ws_cov.cell(1, 1, "Covenant").font = header_font
+    ws_cov.cell(1, 2, "Value").font = header_font
+    ws_cov.cell(1, 3, "Status").font = header_font
+    cov = (((analysis_output or {}).get("section_blocks") or {}).get("covenants") or {}).get("key_metrics") or {}
+    cov_items = [
+        ("Covenant Leverage Max", cov.get("covenant_leverage_max")),
+        ("Current ND/EBITDA", cov.get("current_leverage")),
+        ("Leverage Breach", cov.get("leverage_breach")),
+        ("Covenant Interest Cover Min", cov.get("covenant_interest_cover_min")),
+        ("Current Interest Cover", cov.get("current_interest_cover")),
+        ("Interest Cover Breach", cov.get("interest_cover_breach")),
+        ("Leverage Headroom %", cov.get("leverage_headroom_pct")),
+        ("Coverage Headroom %", cov.get("coverage_headroom_pct")),
+    ]
+    rr = 2
+    for name, val in cov_items:
+        ws_cov.cell(rr, 1, name)
+        ws_cov.cell(rr, 2, val)
+        status = "OK"
+        if isinstance(val, bool):
+            status = "BREACH" if val else "PASS"
+        ws_cov.cell(rr, 3, status)
+        rr += 1
+    ws_cov.column_dimensions["A"].width = 34
+    ws_cov.column_dimensions["B"].width = 20
+    ws_cov.column_dimensions["C"].width = 14
+
+    ws_stress = wb.create_sheet("Stress Test Engine")
+    ws_stress.cell(1, 1, "Scenario").font = header_font
+    ws_stress.cell(1, 2, "ND/EBITDA (stressed)").font = header_font
+    ws_stress.cell(1, 3, "Interest Cover (stressed)").font = header_font
+    ws_stress.cell(1, 4, "Cash After Shock").font = header_font
+    scenarios = ((((analysis_output or {}).get("section_blocks") or {}).get("stress") or {}).get("key_metrics") or {}).get("scenarios") or {}
+    sr = 2
+    for sname, vals in scenarios.items():
+        ws_stress.cell(sr, 1, sname)
+        ws_stress.cell(sr, 2, vals.get("net_debt_to_ebitda_stressed"))
+        ws_stress.cell(sr, 3, vals.get("interest_cover_stressed"))
+        ws_stress.cell(sr, 4, vals.get("cash_after_shock"))
+        sr += 1
+    ws_stress.column_dimensions["A"].width = 30
+    ws_stress.column_dimensions["B"].width = 22
+    ws_stress.column_dimensions["C"].width = 24
+    ws_stress.column_dimensions["D"].width = 18
+
+    ws_score = wb.create_sheet("Rating Scorecard")
+    ws_score.cell(1, 1, "Section").font = header_font
+    ws_score.cell(1, 2, "Score").font = header_font
+    ws_score.cell(1, 3, "Rating").font = header_font
+    agg = (analysis_output or {}).get("aggregation") or {}
+    breakdown = agg.get("section_breakdown") or {}
+    rr = 2
+    for sec, d in breakdown.items():
+        ws_score.cell(rr, 1, sec.replace("_", " ").title())
+        ws_score.cell(rr, 2, d.get("score"))
+        ws_score.cell(rr, 3, d.get("rating") or d.get("section_rating"))
+        rr += 1
+    ws_score.cell(rr + 1, 1, "Final Internal Rating").font = Font(bold=True)
+    ws_score.cell(rr + 1, 2, agg.get("rating_grade"))
+    ws_score.cell(rr + 2, 1, "Aggregate Score").font = Font(bold=True)
+    ws_score.cell(rr + 2, 2, agg.get("aggregate_score"))
+    ws_score.column_dimensions["A"].width = 30
+    ws_score.column_dimensions["B"].width = 16
+    ws_score.column_dimensions["C"].width = 14
+
+    ws_quant = wb.create_sheet("Credit Risk Quant")
+    ws_quant.cell(1, 1, "Credit Risk Quantification").font = Font(bold=True, size=12)
+    q = (analysis_output or {}).get("credit_risk_quantification") or {}
+    quant_rows = [
+        ("Internal Rating", q.get("rating_grade")),
+        ("IFRS 9 Stage (proxy)", q.get("ifrs9_stage")),
+        ("PD", _fmt_pct(q.get("pd"))),
+        ("LGD", _fmt_pct(q.get("lgd"))),
+        ("Downturn LGD", _fmt_pct(q.get("downturn_lgd"))),
+        ("EAD", q.get("ead")),
+        ("Drawn Exposure", q.get("drawn_exposure")),
+        ("Undrawn Commitments", q.get("undrawn_commitments")),
+        ("CCF", q.get("ccf")),
+        ("Expected Loss (EL)", q.get("expected_loss")),
+        ("Downturn EL", q.get("expected_loss_downturn")),
+    ]
+    qr = 3
+    ws_quant.cell(2, 1, "Metric").font = header_font
+    ws_quant.cell(2, 2, "Value").font = header_font
+    for k, v in quant_rows:
+        ws_quant.cell(qr, 1, k)
+        ws_quant.cell(qr, 2, v)
+        if isinstance(v, (int, float)):
+            ws_quant.cell(qr, 2).number_format = "#,##0.00"
+        qr += 1
+    ws_quant.column_dimensions["A"].width = 36
+    ws_quant.column_dimensions["B"].width = 22
+
+    ws_dash = wb.create_sheet("Graph Dashboard")
+    ws_dash.cell(1, 1, "Graph Dashboard Inputs").font = Font(bold=True, size=12)
+    ws_dash.cell(3, 1, "Period").font = header_font
+    ws_dash.cell(3, 2, "Revenue").font = header_font
+    ws_dash.cell(3, 3, "EBITDA").font = header_font
+    ws_dash.cell(3, 4, "ND/EBITDA").font = header_font
+    dr = 4
+    rev_map = {r.get("metric_key"): r.get("values") or {} for r in metrics_rows}
+    for pe in period_ends:
+        pk = period_key_fn(pe)
+        ws_dash.cell(dr, 1, pk)
+        ws_dash.cell(dr, 2, next((r.get("values", {}).get(pk) for r in normalized_rows if r.get("canonical_key") == "revenue"), None))
+        ws_dash.cell(dr, 3, rev_map.get("ebitda", {}).get(pk))
+        ws_dash.cell(dr, 4, rev_map.get("net_debt_to_ebitda_incl_leases", {}).get(pk) or rev_map.get("net_debt_to_ebitda", {}).get(pk))
+        dr += 1
+    ws_dash.column_dimensions["A"].width = 14
+    ws_dash.column_dimensions["B"].width = 16
+    ws_dash.column_dimensions["C"].width = 16
+    ws_dash.column_dimensions["D"].width = 16
+
     buf = BytesIO()
     wb.save(buf)
     buf.seek(0)
@@ -416,6 +661,7 @@ def build_committee_pptx(
     section_texts: dict[str, str] | None = None,
     metric_by_period: dict | None = None,
     facts_by_period: dict | None = None,
+    credit_risk_quant: dict[str, Any] | None = None,
 ) -> BytesIO:
     """Build professional committee deck with styled slides, colors, and explanatory content."""
     try:
@@ -433,6 +679,7 @@ def build_committee_pptx(
     prs.slide_width = Inches(13.333)
     prs.slide_height = Inches(7.5)
     sections = section_texts or {}
+    quant = credit_risk_quant or {}
 
     DARK_BLUE = RGBColor(0x1F, 0x4E, 0x79)
     ACCENT = RGBColor(0x2E, 0x75, 0xB6)
@@ -507,45 +754,269 @@ def build_committee_pptx(
             t = t[:max_len - 3] + "..."
         return t
 
-    # 1. Title
-    add_title_slide(
-        f"Credit Committee",
-        f"{company_name}  •  Rating: {rating_grade}  •  Recommendation: {recommendation}  •  v{version_id[:8]}"
+    facts = facts_by_period or {}
+    metrics = metric_by_period or {}
+    periods = sorted((metrics.keys() or facts.keys()), reverse=True)[:5]
+    latest = periods[0] if periods else None
+    lp = metrics.get(latest, {}) if latest else {}
+    lf = facts.get(latest, {}) if latest else {}
+
+    # Slide 1 — Deal Overview
+    deal_overview = (
+        f"Borrower: {company_name}\n"
+        f"Sector: FMCG / Retail\n"
+        f"Facility type: Annual Review Facility\n"
+        f"Exposure amount: {_fmt_num(lp.get('net_debt_incl_leases') or lp.get('net_debt_ex_leases') or 0)}\n"
+        f"Security summary: See Security & Collateral section\n"
+        f"Internal rating: {rating_grade}\n"
+        f"Recommendation: {recommendation}"
     )
+    add_content_slide("Deal Overview", deal_overview)
 
-    # 2. Executive Summary
-    exec_sum = _truncate_for_slide(sections.get("executive_summary", ""), 900)
-    add_content_slide("Executive Summary", exec_sum, "Key risks and mitigants are detailed in the sections below.")
+    # Slide 2 — Executive Summary
+    exec_sum = _truncate_for_slide(sections.get("executive_summary", ""), 1200)
+    add_content_slide("Executive Summary", exec_sum, "Trajectory and watchpoints for committee decision.")
 
-    # Track 5C: Deck charts - revenue/EBITDA, ND/EBITDA, CFO vs capex
-    _add_chart_slides(prs, blank_layout, metric_by_period or {}, facts_by_period or {})
+    # Slide 3 — Business Overview
+    business = sections.get("business_description", "") + "\n\n" + sections.get("competitive_position", "")
+    add_content_slide("Business Overview", _truncate_for_slide(business, 1300))
 
-    # 3. Financial Performance
-    add_content_slide("Financial Performance", _truncate_for_slide(sections.get("financial_performance", "")))
+    # Slide 4 — Industry Overview
+    add_content_slide("Industry Overview", _truncate_for_slide(sections.get("industry_overview", ""), 1300))
 
-    # 4. Cash Flow & Liquidity
-    add_content_slide("Cash Flow & Liquidity", _truncate_for_slide(sections.get("cash_flow_liquidity", "")), "12-month forward liquidity model.")
+    # Slide 5 — Income Statement Performance
+    perf = sections.get("financial_performance", "")
+    add_content_slide("Income Statement Performance", _truncate_for_slide(perf, 1300))
 
-    # 5. Balance Sheet & Leverage
-    add_content_slide("Balance Sheet & Leverage", _truncate_for_slide(sections.get("balance_sheet_leverage", "")))
+    # Slide 6 — Cash Flow Analysis
+    add_content_slide("Cash Flow Analysis", _truncate_for_slide(sections.get("cash_flow_liquidity", ""), 1300))
 
-    # 6. Key Risks
-    add_content_slide("Key Risks", _truncate_for_slide(sections.get("key_risks", "")))
+    # Slide 7 — Balance Sheet & Leverage
+    add_content_slide("Balance Sheet & Leverage", _truncate_for_slide(sections.get("balance_sheet_leverage", ""), 1300))
 
-    # 7. Stress Testing
-    add_content_slide("Stress Testing Results", _truncate_for_slide(sections.get("stress_testing_results", "")), "Breaches under stress trigger governance notch downgrades.")
+    # Slide 8 — Liquidity Position
+    liquidity_focus = (
+        f"Cash on hand: {_fmt_num(lf.get('cash_and_cash_equivalents'))}\n"
+        f"Current ratio: {lp.get('current_ratio', 'N/A')}\n"
+        f"Quick ratio: {lp.get('quick_ratio', 'N/A')}\n"
+        f"Undrawn facilities: {_fmt_num(lp.get('undrawn_facilities') if isinstance(lp.get('undrawn_facilities'), (int, float)) else 0)}\n\n"
+        + sections.get("cash_flow_liquidity", "")
+    )
+    add_content_slide("Liquidity Position", _truncate_for_slide(liquidity_focus, 1300))
 
-    # 8. Covenants
-    add_content_slide("Covenants & Headroom", _truncate_for_slide(sections.get("covenants_headroom", "")))
+    # Slide 9 — Risk Matrix
+    risk_lines = []
+    for rf in (sections.get("key_risks", "") or "").split("\n"):
+        rf = rf.strip()
+        if not rf:
+            continue
+        risk_lines.append(f"- {rf[:95]} | Severity: High | Trend: Watch | Mitigant: Monitoring/Covenants")
+        if len(risk_lines) >= 8:
+            break
+    risk_body = "Risk | Severity | Trend | Mitigant\n" + "\n".join(risk_lines or ["- No explicit risk flags captured"])
+    add_content_slide("Risk Matrix", _truncate_for_slide(risk_body, 1300))
 
-    # 9. Rating Rationale
-    add_content_slide("Internal Rating Rationale", _truncate_for_slide(sections.get("internal_rating_rationale", f"Rating: {rating_grade}")))
+    # Slide 10 — Rating Summary
+    rating_body = (
+        f"Quantitative score: {lp.get('quant_score', 'See scorecard')}\n"
+        f"Qualitative overlay: {lp.get('qual_score', 'See scorecard / commentary')}\n"
+        f"Final internal rating: {rating_grade}\n"
+        f"Probability of default (PD): {_fmt_pct(quant.get('pd'))}\n"
+        f"Loss given default (LGD): {_fmt_pct(quant.get('lgd'))}\n"
+        f"Exposure at default (EAD): {_fmt_num(quant.get('ead'))}\n"
+        f"Expected loss (EL): {_fmt_num(quant.get('expected_loss'))}\n"
+        f"Outlook: {'Negative' if (lp.get('net_debt_to_ebitda_incl_leases') or 0) > 5 else 'Stable'}\n\n"
+        + _truncate_for_slide(sections.get("internal_rating_rationale", ""), 700)
+    )
+    add_content_slide("Rating Summary", rating_body)
 
-    # 10. Recommendation
-    rec_text = f"Recommendation: {recommendation}\n\nKey drivers monitored: " + ", ".join(str(d) for d in key_drivers[:6])
-    add_content_slide("Recommendation", rec_text)
+    # Slide 11 — Recommendation
+    rec_text = (
+        f"Decision: {recommendation}\n\n"
+        f"Conditions precedent:\n{sections.get('recommendation_conditions', 'To be confirmed')}\n\n"
+        f"Monitoring requirements:\n{sections.get('monitoring_plan', 'Quarterly review and covenant monitoring')}"
+    )
+    add_content_slide("Recommendation", _truncate_for_slide(rec_text, 1300))
 
     buf = BytesIO()
     prs.save(buf)
+    buf.seek(0)
+    return buf
+
+
+def build_rating_output_json(
+    rating_grade: str | None,
+    pd_band: Any,
+    score_breakdown: dict[str, Any] | None,
+    overrides: dict[str, Any] | None,
+    rationale: dict[str, Any] | None,
+    analysis_output: dict[str, Any] | None,
+    credit_risk_quant: dict[str, Any] | None = None,
+) -> BytesIO:
+    agg = (analysis_output or {}).get("aggregation") or {}
+    quant = credit_risk_quant or (analysis_output or {}).get("credit_risk_quantification") or {}
+    payload = {
+        "final_rating": rating_grade or agg.get("rating_grade"),
+        "pd_band": pd_band,
+        "pd": quant.get("pd"),
+        "lgd": quant.get("lgd"),
+        "downturn_lgd": quant.get("downturn_lgd"),
+        "ead": quant.get("ead"),
+        "expected_loss": quant.get("expected_loss"),
+        "expected_loss_downturn": quant.get("expected_loss_downturn"),
+        "ifrs9_stage": quant.get("ifrs9_stage"),
+        "quant_score": agg.get("aggregate_score"),
+        "qual_score": agg.get("qualitative_overlay"),
+        "overrides": overrides or {},
+        "score_breakdown": score_breakdown or {},
+        "rationale": rationale or {},
+        "watchlist_flag": bool(agg.get("watchlist_flag")) or ("NEGATIVE" in str(agg.get("outlook", "")).upper()),
+        "lgd_estimate": agg.get("lgd_estimate"),
+        "outlook": agg.get("outlook"),
+    }
+    buf = BytesIO()
+    buf.write(json.dumps(payload, indent=2, default=str).encode("utf-8"))
+    buf.seek(0)
+    return buf
+
+
+def build_memo_pdf(
+    company_name: str,
+    review_period_end: date | None,
+    section_texts: dict[str, str],
+    rating_grade: str | None = None,
+    recommendation: str | None = None,
+) -> BytesIO:
+    lines = [
+        f"Company: {company_name}",
+        f"Review period end: {review_period_end or 'N/A'}",
+        f"Internal rating: {rating_grade or 'N/A'}",
+        f"Recommendation: {recommendation or 'N/A'}",
+        "",
+    ]
+    for key in MEMO_SECTIONS:
+        title = MEMO_SECTION_TITLES.get(key, key.replace("_", " ").title())
+        lines.append(f"{title}:")
+        txt = (section_texts.get(key) or "Content to be completed.").replace("\n", " ")
+        lines.append(txt[:1800])
+        lines.append("")
+    return _simple_pdf_from_lines("Credit Review Memo", lines)
+
+
+def build_covenant_certificate_txt(company_name: str, analysis_output: dict[str, Any] | None) -> BytesIO:
+    cov = (((analysis_output or {}).get("section_blocks") or {}).get("covenants") or {}).get("key_metrics") or {}
+    lines = [
+        "COVENANT COMPLIANCE CERTIFICATE",
+        f"Borrower: {company_name}",
+        "",
+        f"Leverage covenant max: {cov.get('covenant_leverage_max', 'N/A')}",
+        f"Current leverage: {cov.get('current_leverage', 'N/A')}",
+        f"Leverage breach: {cov.get('leverage_breach', 'N/A')}",
+        f"Interest cover covenant min: {cov.get('covenant_interest_cover_min', 'N/A')}",
+        f"Current interest cover: {cov.get('current_interest_cover', 'N/A')}",
+        f"Interest cover breach: {cov.get('interest_cover_breach', 'N/A')}",
+        f"Leverage headroom %: {cov.get('leverage_headroom_pct', 'N/A')}",
+        f"Coverage headroom %: {cov.get('coverage_headroom_pct', 'N/A')}",
+    ]
+    buf = BytesIO()
+    buf.write("\n".join(lines).encode("utf-8"))
+    buf.seek(0)
+    return buf
+
+
+def build_cash_flow_stress_xlsx(company_name: str, analysis_output: dict[str, Any] | None) -> BytesIO:
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Stress Scenarios"
+    ws.cell(1, 1, f"Cash Flow Stress Test Model - {company_name}").font = Font(bold=True, size=13)
+    headers = ["Scenario", "ND/EBITDA (stressed)", "Interest Cover (stressed)", "ST Debt/Cash (stressed)", "Cash After Shock"]
+    for i, h in enumerate(headers, 1):
+        ws.cell(3, i, h).font = Font(bold=True)
+    scenarios = ((((analysis_output or {}).get("section_blocks") or {}).get("stress") or {}).get("key_metrics") or {}).get("scenarios") or {}
+    r = 4
+    for name, vals in scenarios.items():
+        ws.cell(r, 1, name)
+        ws.cell(r, 2, vals.get("net_debt_to_ebitda_stressed"))
+        ws.cell(r, 3, vals.get("interest_cover_stressed"))
+        ws.cell(r, 4, vals.get("st_debt_to_cash_stressed"))
+        ws.cell(r, 5, vals.get("cash_after_shock"))
+        r += 1
+    for c, w in zip(["A", "B", "C", "D", "E"], [30, 22, 22, 22, 18]):
+        ws.column_dimensions[c].width = w
+    buf = BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+    return buf
+
+
+def build_risk_dashboard_pdf(company_name: str, section_texts: dict[str, str], rating_grade: str | None) -> BytesIO:
+    lines = [
+        f"Company: {company_name}",
+        f"Internal Rating: {rating_grade or 'N/A'}",
+        "",
+        "Top Risks (Severity/Trend/Mitigant):",
+    ]
+    risks = [r.strip() for r in (section_texts.get("key_risks") or "").split("\n") if r.strip()]
+    for r in risks[:12]:
+        lines.append(f"- {r[:100]} | High | Watch | Covenant + monthly monitoring")
+    if not risks:
+        lines.append("- Insufficient risk detail available in current extraction.")
+    return _simple_pdf_from_lines("Risk Dashboard", lines)
+
+
+def build_sector_comparison_appendix_txt(company_name: str, section_texts: dict[str, str]) -> BytesIO:
+    text = (
+        f"Sector Comparison Appendix - {company_name}\n\n"
+        "Peer and sector comparator tables should be populated from external market datasets.\n"
+        "Current baseline includes internal sector narrative from memo sections.\n\n"
+        + (section_texts.get("industry_overview") or "No industry overview available.")
+    )
+    buf = BytesIO()
+    buf.write(text.encode("utf-8"))
+    buf.seek(0)
+    return buf
+
+
+def build_data_room_zip(
+    company_name: str,
+    version_id: str,
+    normalized_rows: list[dict],
+    metrics_rows: list[dict],
+    section_texts: dict[str, str],
+    analysis_output: dict[str, Any] | None,
+    rating_output: dict[str, Any] | None,
+) -> BytesIO:
+    """
+    Build a structured ZIP bundle for due-diligence / audit handoff.
+    Includes core structured outputs and mapping logs.
+    """
+    buf = BytesIO()
+    with zipfile.ZipFile(buf, mode="w", compression=zipfile.ZIP_DEFLATED) as zf:
+        zf.writestr("meta/version.txt", f"company={company_name}\nversion={version_id}\n")
+        zf.writestr("structured/analysis_output.json", json.dumps(analysis_output or {}, indent=2, default=str))
+        zf.writestr("structured/rating_output.json", json.dumps(rating_output or {}, indent=2, default=str))
+        zf.writestr("structured/section_texts.json", json.dumps(section_texts or {}, indent=2, default=str))
+
+        norm_csv = StringIO()
+        w = csv.writer(norm_csv)
+        w.writerow(["canonical_key", "label", "period", "value"])
+        for r in normalized_rows:
+            key = r.get("canonical_key", "")
+            label = r.get("label", "")
+            vals = r.get("values") or {}
+            for p, v in vals.items():
+                w.writerow([key, label, p, v])
+        zf.writestr("mapping_logs/normalized_mapping.csv", norm_csv.getvalue())
+
+        met_csv = StringIO()
+        w2 = csv.writer(met_csv)
+        w2.writerow(["metric_key", "label", "period", "value"])
+        for r in metrics_rows:
+            key = r.get("metric_key", "")
+            label = r.get("label", "")
+            vals = r.get("values") or {}
+            for p, v in vals.items():
+                w2.writerow([key, label, p, v])
+        zf.writestr("mapping_logs/metric_facts.csv", met_csv.getvalue())
     buf.seek(0)
     return buf

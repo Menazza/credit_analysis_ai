@@ -11,6 +11,7 @@ Uses the local shp-afs-2025.pdf and requires:
 Usage:
     cd backend
     python -m scripts.run_full_pipeline_test
+    python -m scripts.run_full_pipeline_test --quick       # single PDF only, ~2 min
     python -m scripts.run_full_pipeline_test path/to/other.pdf
 """
 import asyncio
@@ -56,13 +57,18 @@ async def ensure_seed(db):
 async def main():
     base_dir = backend_dir.parent
     # Collect PDFs: single arg, or all shp-afs-20*.pdf sorted by year (best: multi-year analysis)
+    # Support --quick to use only the latest PDF for faster test
+    quick_mode = "--quick" in sys.argv
+    if quick_mode:
+        sys.argv = [a for a in sys.argv if a != "--quick"]
     if len(sys.argv) > 1:
         pdf_paths = [Path(p) for p in sys.argv[1:] if Path(p).exists()]
     else:
-        pdf_paths = sorted(
+        all_pdfs = sorted(
             [p for p in base_dir.glob("shp-afs-20*.pdf") if p.is_file()],
             key=lambda p: p.stem,
         )
+        pdf_paths = all_pdfs[-1:] if quick_mode else all_pdfs
     if not pdf_paths:
         print(f"ERROR: No PDFs found. Place shp-afs-2022.pdf through shp-afs-2025.pdf in {base_dir}")
         sys.exit(1)
@@ -157,7 +163,7 @@ async def main():
             db.add(version)
             await db.flush()
             version_ids.append((str(version.id), filename))
-            print(f"  Document: {filename} -> Version {version.id}")
+            print(f"  Document: {filename} -> Version {version.id} (uploaded to S3)", flush=True)
         await db.commit()
 
         cr_version_id_str = str(cr_version.id)
@@ -169,14 +175,17 @@ async def main():
 
     from app.worker.tasks import run_ingest_pipeline, run_extraction
 
-    for version_id_str, filename in version_ids:
-        print(f"\n[{filename}] Ingest...")
-        result = run_ingest_pipeline.apply(args=[version_id_str])
+    for i, (version_id_str, filename) in enumerate(version_ids):
+        print(f"\n[{i+1}/{len(version_ids)}] [{filename}] Ingest...", flush=True)
+        result = run_ingest_pipeline.apply(
+            args=[version_id_str],
+            kwargs={"skip_extraction_task": True},  # we run extraction ourselves
+        )
         if not result.successful():
-            print(f"  Ingest FAILED: {result.result}")
+            print(f"  Ingest FAILED: {result.result}", flush=True)
             continue
-        print(f"  Ingest: {result.result}")
-        print(f"[{filename}] Extraction...")
+        print(f"  Ingest done: {result.result}", flush=True)
+        print(f"[{filename}] Extraction (this can take 30-60s per PDF)...", flush=True)
         result = run_extraction.apply(args=[version_id_str])
         if not result.successful():
             print(f"  Extraction FAILED: {result.result}")
@@ -187,8 +196,8 @@ async def main():
     # Formats: DOCX (memo), XLSX (financial model/FS), PPTX (committee deck) — all produced every run
     from app.worker.tasks import run_full_credit_analysis
     formats = ["DOCX", "XLSX", "PPTX"]
-    print("\nRunning full credit analysis (mapping -> financial -> rating -> pack)...")
-    print(f"Output formats: {', '.join(formats)} (credit memo, financial model, committee deck)")
+    print("\nRunning full credit analysis (mapping -> financial -> rating -> pack)...", flush=True)
+    print(f"Output formats: {', '.join(formats)} (credit memo, financial model, committee deck)", flush=True)
     result = run_full_credit_analysis.apply(args=[cr_version_id_str, formats])
     if not result.successful():
         print(f"Full analysis FAILED: {result.result}")
@@ -210,6 +219,7 @@ async def main():
     # 6a. Extracted files from S3 (from all document versions)
     bucket = get_settings().object_storage_bucket
     try:
+        from datetime import datetime as dt
         s3 = get_s3_client()
         for vid, _ in version_ids:
             prefix = f"extracted/{tenant.id}/{vid}/"
@@ -219,8 +229,16 @@ async def main():
                 name = key.split("/")[-1]
                 s3_resp = s3.get_object(Bucket=bucket, Key=key)
                 out_path = output_dir / name
-                out_path.write_bytes(s3_resp["Body"].read())
-                print(f"  - {name} -> {out_path}")
+                buf = s3_resp["Body"].read()
+                try:
+                    out_path.write_bytes(buf)
+                except PermissionError:
+                    stem, suffix = out_path.stem, out_path.suffix
+                    alt = output_dir / f"{stem}_{dt.now().strftime('%Y%m%d_%H%M%S')}{suffix}"
+                    alt.write_bytes(buf)
+                    print(f"  - {name}: file locked, saved as {alt.name}")
+                else:
+                    print(f"  - {name} -> {out_path}")
     except Exception as e:
         print(f"  Could not download extracted files: {e}")
 
@@ -239,8 +257,13 @@ async def main():
         for art in arts:
             if not art.storage_url:
                 continue
-            names = {"DOCX": "credit_memo.docx", "XLSX": "financial_model.xlsx", "PPTX": "committee_deck.pptx"}
-            fname = names.get(art.type, f"export_{art.type.lower()}")
+            names = {"DOCX": "credit_memo.docx", "PPTX": "committee_deck.pptx"}
+            url_name = (art.storage_url.rsplit("/", 1)[-1] if "/" in art.storage_url else "").strip()
+            if art.type == "XLSX":
+                # Support multiple XLSX artifacts (financial model + stress model, etc.)
+                fname = url_name or "financial_model.xlsx"
+            else:
+                fname = names.get(art.type, url_name or f"export_{art.type.lower()}")
             try:
                 buf = download_file_from_url(art.storage_url)
                 out_path = output_dir / fname

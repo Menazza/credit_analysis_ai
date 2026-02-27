@@ -1,0 +1,6 @@
+Sector Comparison Appendix - Sample (Pty) Ltd
+
+Peer and sector comparator tables should be populated from external market datasets.
+Current baseline includes internal sector narrative from memo sections.
+
+Company operates across 10 business segments.

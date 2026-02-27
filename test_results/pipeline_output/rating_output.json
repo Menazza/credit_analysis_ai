@@ -1,0 +1,74 @@
+{
+  "final_rating": "BBB",
+  "pd_band": 0.8,
+  "pd": 0.008,
+  "lgd": 0.5373061649016642,
+  "downturn_lgd": 0.6716327061270801,
+  "ead": 35033.0,
+  "expected_loss": 150.587575,
+  "expected_loss_downturn": 188.23446875,
+  "ifrs9_stage": "Stage 2",
+  "quant_score": 48.1,
+  "qual_score": null,
+  "overrides": {},
+  "score_breakdown": {
+    "current_ratio": {
+      "score": 100,
+      "value": 20.773078906652913,
+      "weight": 0.1
+    },
+    "ebitda_margin": {
+      "score": 25,
+      "value": 2.742767143778616,
+      "weight": 0.1
+    },
+    "fcf_conversion": {
+      "score": 100,
+      "value": 2.4966094358678403,
+      "weight": 0.1
+    },
+    "interest_cover": {
+      "score": 55,
+      "value": 2.921407624633431,
+      "weight": 0.15
+    },
+    "net_debt_to_ebitda": {
+      "score": 35,
+      "value": 5.054537584764104,
+      "weight": 0.2
+    }
+  },
+  "rationale": {
+    "qualitative_factors": {},
+    "quantitative_breakdown": {
+      "current_ratio": {
+        "score": 100,
+        "value": 20.773078906652913,
+        "weight": 0.1
+      },
+      "ebitda_margin": {
+        "score": 25,
+        "value": 2.742767143778616,
+        "weight": 0.1
+      },
+      "fcf_conversion": {
+        "score": 100,
+        "value": 2.4966094358678403,
+        "weight": 0.1
+      },
+      "interest_cover": {
+        "score": 55,
+        "value": 2.921407624633431,
+        "weight": 0.15
+      },
+      "net_debt_to_ebitda": {
+        "score": 35,
+        "value": 5.054537584764104,
+        "weight": 0.2
+      }
+    }
+  },
+  "watchlist_flag": false,
+  "lgd_estimate": null,
+  "outlook": null
+}

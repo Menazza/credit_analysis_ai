@@ -52,7 +52,7 @@ def _extract_regions_from_page(page: "fitz.Page") -> list[dict]:
 
 
 @celery_app.task(bind=True, name="app.worker.tasks.run_ingest_pipeline")
-def run_ingest_pipeline(self, document_version_id: str):
+def run_ingest_pipeline(self, document_version_id: str, skip_extraction_task: bool = False):
     """Ingest document: download PDF, extract pages and text blocks, store page assets."""
     db = get_sync_session()
     try:
@@ -89,7 +89,8 @@ def run_ingest_pipeline(self, document_version_id: str):
         version.status = "EXTRACTING"
         db.commit()
 
-        celery_app.send_task("app.worker.tasks.run_extraction", args=[str(version.id)])
+        if not skip_extraction_task:
+            celery_app.send_task("app.worker.tasks.run_extraction", args=[str(version.id)])
         return {"document_version_id": document_version_id, "pages": page_count, "status": version.status}
     except Exception as e:
         if db:
@@ -567,8 +568,20 @@ def generate_pack(credit_review_version_id: str, formats: list | None = None):
     """Generate Word/Excel/PPT pack from NormalizedFact, MetricFact, RatingResult. Upload to S3, create ExportArtifact."""
     import logging
     from datetime import date
-    from app.services.report_generator import build_memo_docx, build_financial_model_xlsx, build_committee_pptx
+    from app.services.report_generator import (
+        build_memo_docx,
+        build_financial_model_xlsx,
+        build_committee_pptx,
+        build_memo_pdf,
+        build_rating_output_json,
+        build_data_room_zip,
+        build_covenant_certificate_txt,
+        build_cash_flow_stress_xlsx,
+        build_risk_dashboard_pdf,
+        build_sector_comparison_appendix_txt,
+    )
     from app.services.memo_composer import build_all_sections
+    from app.services.credit_risk_quant_engine import compute_credit_risk_quantification
     from app.services.storage import upload_bytes
     from app.models.metrics import ExportArtifact
 
@@ -614,6 +627,7 @@ def generate_pack(credit_review_version_id: str, formats: list | None = None):
 
         rr = db.query(RatingResult).filter(RatingResult.credit_review_version_id == version.id).order_by(RatingResult.created_at.desc()).first()
         rating_grade = rr.rating_grade if rr else None
+        pd_band = rr.pd_band if rr else None
 
         # Load notes JSON from S3 for key_risks section (Phase 2)
         notes_json = None
@@ -656,6 +670,14 @@ def generate_pack(credit_review_version_id: str, formats: list | None = None):
         stress_scenarios = (analysis_output.get("section_blocks") or {}).get("stress", {}).get("key_metrics", {}).get("scenarios") or {}
         stress_breaches = sum(1 for s in stress_scenarios.values() if isinstance(s, dict) and (s.get("net_debt_to_ebitda_stressed") or 0) >= 6 or (s.get("interest_cover_stressed") or 10) < 2)
         recommendation, rec_conditions = compute_recommendation(key_metrics, cov_block, stress_breaches)
+        credit_risk_quant = compute_credit_risk_quantification(
+            facts_by_period=facts_by_period,
+            metric_by_period=metric_by_period,
+            rating_grade=rating_grade,
+            pd_band=pd_band,
+            analysis_output=analysis_output,
+        )
+        analysis_output["credit_risk_quantification"] = credit_risk_quant
         section_texts = build_all_sections(
             company_name=company_name,
             review_period_end=review.review_period_end or (periods[0] if periods else None),
@@ -672,6 +694,26 @@ def generate_pack(credit_review_version_id: str, formats: list | None = None):
         version_id_str = str(version.id)
         tenant_id = str(engagement.tenant_id)
         bucket_prefix = f"exports/{tenant_id}/{version_id_str}"
+        # Shared row payloads for workbook + data-room package
+        def _pe_key(pe):
+            return pe.isoformat() if hasattr(pe, "isoformat") else str(pe)
+        normalized_rows = [
+            {
+                "label": k.replace("_", " ").title(),
+                "canonical_key": k,
+                "values": {_pe_key(pe): facts_by_period.get(pe, {}).get(k) for pe in periods},
+            }
+            for k in sorted(set().union(*(f.keys() for f in facts_by_period.values())))
+        ]
+        metrics_rows = [
+            {
+                "label": mk.replace("_", " ").title(),
+                "metric_key": mk,
+                "values": {_pe_key(pe): metric_by_period.get(pe, {}).get(mk) for pe in periods},
+            }
+            for mk in sorted(set().union(*(m.keys() for m in metric_by_period.values())))
+            if mk
+        ]
 
         if "DOCX" in formats:
             buf = build_memo_docx(
@@ -688,13 +730,20 @@ def generate_pack(credit_review_version_id: str, formats: list | None = None):
             url = upload_bytes(docx_key, buf.read(), content_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document")
             db.add(ExportArtifact(credit_review_version_id=version.id, type="DOCX", storage_url=url))
             log.info("Uploaded DOCX to %s", docx_key)
+            # Also generate memo PDF companion for committee sharing
+            memo_pdf = build_memo_pdf(
+                company_name=company_name,
+                review_period_end=review.review_period_end,
+                section_texts=section_texts,
+                rating_grade=rating_grade,
+                recommendation=recommendation,
+            )
+            memo_pdf_key = f"{bucket_prefix}/credit_memo.pdf"
+            memo_pdf_url = upload_bytes(memo_pdf_key, memo_pdf.read(), content_type="application/pdf")
+            db.add(ExportArtifact(credit_review_version_id=version.id, type="PDF", storage_url=memo_pdf_url))
+            log.info("Uploaded memo PDF to %s", memo_pdf_key)
 
         if "XLSX" in formats:
-            # Use pe.isoformat() as dict key so build_financial_model_xlsx lookup matches
-            def _pe_key(pe):
-                return pe.isoformat() if hasattr(pe, "isoformat") else str(pe)
-            normalized_rows = [{"label": k.replace("_", " ").title(), "canonical_key": k, "values": {_pe_key(pe): facts_by_period.get(pe, {}).get(k) for pe in periods}} for k in sorted(set().union(*(f.keys() for f in facts_by_period.values())))]
-            metrics_rows = [{"label": mk.replace("_", " ").title(), "metric_key": mk, "values": {_pe_key(pe): metric_by_period.get(pe, {}).get(mk) for pe in periods}} for mk in sorted(set().union(*(m.keys() for m in metric_by_period.values()))) if mk]
             buf = build_financial_model_xlsx(company_name=company_name, period_ends=periods, normalized_rows=normalized_rows, metrics_rows=metrics_rows, version_id=version_id_str, analysis_output=analysis_output)
             xlsx_key = f"{bucket_prefix}/financial_model.xlsx"
             url = upload_bytes(xlsx_key, buf.read(), content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
@@ -711,11 +760,66 @@ def generate_pack(credit_review_version_id: str, formats: list | None = None):
                 section_texts=section_texts,
                 metric_by_period=metric_by_period,
                 facts_by_period=facts_by_period,
+                credit_risk_quant=credit_risk_quant,
             )
             pptx_key = f"{bucket_prefix}/committee_deck.pptx"
             url = upload_bytes(pptx_key, buf.read(), content_type="application/vnd.openxmlformats-officedocument.presentationml.presentation")
             db.add(ExportArtifact(credit_review_version_id=version.id, type="PPTX", storage_url=url))
             log.info("Uploaded PPTX to %s", pptx_key)
+
+        # Always emit structured rating output and data-room package (non-negotiable deliverables)
+        rating_json_buf = build_rating_output_json(
+            rating_grade=rating_grade,
+            pd_band=pd_band,
+            score_breakdown=rr.score_breakdown_json if rr else {},
+            overrides=rr.overrides_json if rr else {},
+            rationale=rr.rationale_json if rr else {},
+            analysis_output=analysis_output,
+            credit_risk_quant=credit_risk_quant,
+        )
+        rating_json_key = f"{bucket_prefix}/rating_output.json"
+        rating_json_bytes = rating_json_buf.read()
+        rating_json_url = upload_bytes(rating_json_key, rating_json_bytes, content_type="application/json")
+        db.add(ExportArtifact(credit_review_version_id=version.id, type="JSON", storage_url=rating_json_url))
+        log.info("Uploaded rating output to %s", rating_json_key)
+
+        import json as _json
+        rating_output_payload = _json.loads(rating_json_bytes.decode("utf-8"))
+
+        # Optional but high-value institutional outputs
+        cov_buf = build_covenant_certificate_txt(company_name, analysis_output)
+        cov_key = f"{bucket_prefix}/covenant_compliance_certificate.txt"
+        cov_url = upload_bytes(cov_key, cov_buf.read(), content_type="text/plain")
+        db.add(ExportArtifact(credit_review_version_id=version.id, type="TXT", storage_url=cov_url))
+
+        stress_xlsx_buf = build_cash_flow_stress_xlsx(company_name, analysis_output)
+        stress_key = f"{bucket_prefix}/cash_flow_stress_test_model.xlsx"
+        stress_url = upload_bytes(stress_key, stress_xlsx_buf.read(), content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+        db.add(ExportArtifact(credit_review_version_id=version.id, type="XLSX", storage_url=stress_url))
+
+        risk_pdf_buf = build_risk_dashboard_pdf(company_name, section_texts, rating_grade)
+        risk_pdf_key = f"{bucket_prefix}/risk_dashboard.pdf"
+        risk_pdf_url = upload_bytes(risk_pdf_key, risk_pdf_buf.read(), content_type="application/pdf")
+        db.add(ExportArtifact(credit_review_version_id=version.id, type="PDF", storage_url=risk_pdf_url))
+
+        sector_buf = build_sector_comparison_appendix_txt(company_name, section_texts)
+        sector_key = f"{bucket_prefix}/sector_comparison_appendix.txt"
+        sector_url = upload_bytes(sector_key, sector_buf.read(), content_type="text/plain")
+        db.add(ExportArtifact(credit_review_version_id=version.id, type="TXT", storage_url=sector_url))
+
+        zip_buf = build_data_room_zip(
+            company_name=company_name,
+            version_id=version_id_str,
+            normalized_rows=normalized_rows,
+            metrics_rows=metrics_rows,
+            section_texts=section_texts,
+            analysis_output=analysis_output,
+            rating_output=rating_output_payload,
+        )
+        zip_key = f"{bucket_prefix}/data_room_export.zip"
+        zip_url = upload_bytes(zip_key, zip_buf.read(), content_type="application/zip")
+        db.add(ExportArtifact(credit_review_version_id=version.id, type="ZIP", storage_url=zip_url))
+        log.info("Uploaded data room ZIP to %s", zip_key)
 
         db.commit()
         return {"credit_review_version_id": credit_review_version_id, "formats": formats}

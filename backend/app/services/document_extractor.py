@@ -127,10 +127,13 @@ def detect_statement_pages(pdf_bytes: bytes) -> list[StatementPage]:
     for page_idx in range(num_pages):
         text = doc[page_idx].get_text()
         text_lower = text.lower()
+        # Normalize whitespace (newlines, multiple spaces) so phrase matching works when
+        # PDF layout splits phrases e.g. "statement of \nfinancial position"
+        text_normalized = re.sub(r"\s+", " ", text_lower)
         page_no = page_idx + 1
 
         # Skip notes pages
-        if "notes to the" in text_lower[:300]:
+        if "notes to the" in text_normalized[:400]:
             continue
 
         if page_no < min_statement_page:
@@ -138,27 +141,27 @@ def detect_statement_pages(pdf_bytes: bytes) -> list[StatementPage]:
 
         # Determine entity scope
         entity_scope = "GROUP"
-        if "separate statement" in text_lower[:1000]:
+        if "separate statement" in text_normalized[:1200]:
             entity_scope = "COMPANY"
-        elif "consolidated" in text_lower[:1000]:
+        elif "consolidated" in text_normalized[:1200]:
             entity_scope = "GROUP"
 
         # SFP: must have statement title and total assets
-        if "statement of financial position" in text_lower[:1000] and "total assets" in text_lower:
+        if "statement of financial position" in text_normalized[:1200] and "total assets" in text_normalized:
             pages.append(StatementPage(page_no=page_no, statement_type="SFP", entity_scope=entity_scope))
 
         # SCI: must have statement title and revenue/profit
-        if "statement of comprehensive income" in text_lower[:1000]:
-            if "revenue" in text_lower or "profit" in text_lower:
+        if "statement of comprehensive income" in text_normalized[:1200]:
+            if "revenue" in text_normalized or "profit" in text_normalized:
                 pages.append(StatementPage(page_no=page_no, statement_type="SCI", entity_scope=entity_scope))
 
         # SOCE: must have statement title and balance at
-        if "statement of changes in equity" in text_lower[:1000] and "balance at" in text_lower:
+        if "statement of changes in equity" in text_normalized[:1200] and "balance at" in text_normalized:
             pages.append(StatementPage(page_no=page_no, statement_type="SOCE", entity_scope=entity_scope))
 
-        # CF: must have statement title and operating/cash content
-        if "statement of cash flows" in text_lower[:1500]:
-            if "operating" in text_lower or "cash generated" in text_lower or "cash flows" in text_lower:
+        # CF (SCF): must have statement title and operating/cash content
+        if "statement of cash flows" in text_normalized[:1800]:
+            if "operating" in text_normalized or "cash generated" in text_normalized or "cash flows" in text_normalized:
                 pages.append(StatementPage(page_no=page_no, statement_type="CF", entity_scope=entity_scope))
 
     # Deduplicate - keep first occurrence per statement_type + scope
@@ -174,7 +177,7 @@ def detect_statement_pages(pdf_bytes: bytes) -> list[StatementPage]:
     # Handle two-column pages: add companion statements on same page
     additional: list[StatementPage] = []
     for sp in unique_pages:
-        page_text = doc[sp.page_no - 1].get_text().lower()
+        page_text = re.sub(r"\s+", " ", doc[sp.page_no - 1].get_text().lower())
 
         if sp.statement_type == "SFP":
             if "comprehensive income" in page_text or "profit for the year" in page_text:
